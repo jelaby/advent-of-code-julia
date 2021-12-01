@@ -8,9 +8,15 @@ day1:
 import AoC
 
 function countIncreases(depths)
-    return foldl(depths; init=(increases=0,prev=typemax(eltype(depths)))) do x,current
-        return (increases=x.increases + (current > x.prev), prev=current)
-    end |> r->r.increases
+    increases = 0
+    prev=typemax(eltype(depths))
+    for depth in depths
+        if depth > prev
+            increases += 1
+        end
+        prev = depth
+    end
+    return increases
 end
 function countIncreases2(depths)
     return countIncreases((sum(depths[i:i+2]) for i in 1:length(depths)-2))

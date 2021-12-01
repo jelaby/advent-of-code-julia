@@ -10,13 +10,13 @@ import Base.sum
 
 function countIncreases(depths)
     increases = 0
-    prev = sum(depths[begin:begin+2])
-    for start in eachindex(depths)[begin+1:end-2]
-        window = sum(depths[start:start+2])
-        if window > prev
+
+    prev = nothing
+    for current in (sum(depths[i:i+2]) for i in 1:length(depths)-2)
+        if !isnothing(prev) && current > prev
             increases+=1
         end
-        prev = window
+        prev = current
     end
     return increases
 end

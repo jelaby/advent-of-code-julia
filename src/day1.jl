@@ -7,11 +7,16 @@ day1:
 
 import AoC
 
-function countIncreases(depths::Vector{T}) where T
-    return foldl((sum(depths[i:i+2]) for i in 1:length(depths)-2); init=(increases=0,prev=typemax(T))) do x,current
+function countIncreases(depths)
+    return foldl(depths; init=(increases=0,prev=typemax(eltype(depths)))) do x,current
         return (increases=x.increases + (current > x.prev), prev=current)
     end |> r->r.increases
 end
+function countIncreases2(depths)
+    return countIncreases((sum(depths[i:i+2]) for i in 1:length(depths)-2))
+end
 
-@show countIncreases(AoC.exampleInts(1,1))
-@show countIncreases(AoC.ints(1))
+show(AoC.exampleInts(1,1) |> x -> @time countIncreases(x))
+show(AoC.ints(1) |> x -> @time countIncreases(x))
+show(AoC.exampleInts(1,1) |> x -> @time countIncreases2(x))
+show(AoC.ints(1) |> x -> @time countIncreases2(x))

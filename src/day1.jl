@@ -6,19 +6,11 @@ day1:
 =#
 
 import AoC
-import Base.sum
 
-function countIncreases(depths)
-    increases = 0
-
-    prev = nothing
-    for current in (sum(depths[i:i+2]) for i in 1:length(depths)-2)
-        if !isnothing(prev) && current > prev
-            increases+=1
-        end
-        prev = current
-    end
-    return increases
+function countIncreases(depths::Vector{T}) where T
+    return foldl((sum(depths[i:i+2]) for i in 1:length(depths)-2); init=(increases=0,prev=typemax(T))) do x,current
+        return (increases=x.increases + (current > x.prev), prev=current)
+    end |> r->r.increases
 end
 
 @show countIncreases(AoC.exampleInts(1,1))

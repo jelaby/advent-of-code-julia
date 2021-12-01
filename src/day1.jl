@@ -6,15 +6,17 @@ day1:
 =#
 
 import AoC
+import Base.sum
 
 function countIncreases(depths)
     increases = 0
-    prev = depths[begin]
-    for depth in depths[begin+1:end]
-        if depth > prev
+    prev = sum(depths[begin:begin+2])
+    for start in eachindex(depths)[begin+1:end-2]
+        window = sum(depths[start:start+2])
+        if window > prev
             increases+=1
         end
-        prev = depth
+        prev = window
     end
     return increases
 end

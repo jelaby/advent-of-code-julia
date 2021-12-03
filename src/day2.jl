@@ -5,12 +5,11 @@ day1:
 - Date: 2020-12-01
 =#
 
-import AoC
+using AoC
 
 
 
-step(pos, line::AbstractString) = step(pos, split(line, r"\s+")...)
-step(pos, dir, distance::AbstractString) = step(pos, dir, parse(Int, distance))
+step(pos, line::AbstractString) = step(pos, parseLine(line, String, Int)...)
 step(pos, direction, distance) = step(pos, Val(Symbol(direction)), distance)
 step(pos, ::Val{:forward},distance) = pos + [1,0,0]*distance + [0,1,0]*pos[3]*distance
 step(pos, ::Val{:up}, distance) = pos + [0,0,1]*distance
@@ -24,7 +23,7 @@ function exec(lines)
     return pos[1:2]
 end
 
-show(AoC.exampleLines(2,1) |> ll -> @time exec(ll))
-show(AoC.lines(2) |> ll -> @time exec(ll))
-show(AoC.exampleLines(2,1) |> ll -> @time *(exec(ll)...))
-show(AoC.lines(2) |> ll -> @time *(exec(ll)...))
+show(exampleLines(2,1   ) |> ll -> @time exec(ll))
+show(lines(2) |> ll -> @time exec(ll))
+show(exampleLines(2,1) |> ll -> @time *(exec(ll)...))
+show(lines(2) |> ll -> @time *(exec(ll)...))

@@ -15,10 +15,15 @@ module AoC
 
     export lines, exampleLines
     export ints, exampleInts
+    export parseLine
 
     lines(day) = open(readlines, "src/day" * string(day) * "-input.txt")
     exampleLines(day, n) = open(readlines, "src/day" * string(day) * "-example-" * string(n) * ".txt")
 
     ints(day) = lines(day) |> ll -> parse.(Int, ll)
     exampleInts(day, n) = exampleLines(day, n) |> ll -> parse.(Int, ll)
+
+    parse(::Type{T}, string::AbstractString) where T<:AbstractString = string
+    parse(type, string) = Base.parse(type, string)
+    parseLine(line, types...) = split(line, r"\s+"; limit=length(types)) |> tt -> parse.(types, tt)
 end

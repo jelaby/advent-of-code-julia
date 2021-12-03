@@ -7,10 +7,10 @@ day1:
 
 using AoC,Test
 
-powerConsumption(lines) = gamma(lines) * epsilon(lines)
+powerConsumption(lines) = γ(lines) * ϵ(lines)
 
-gamma(lines::AbstractArray{<:AbstractString}) = gamma([[c=='1' for c in line] for line in lines])
-function gamma(lines::AbstractArray{<:AbstractArray{Bool}})
+γ(lines::AbstractArray{<:AbstractString}) = γ([[c=='1' for c in line] for line in lines])
+function γ(lines::AbstractArray{<:AbstractArray{Bool}})
     total = zeros(Int, length(lines[1]))
     for line in  lines
         total += line
@@ -19,9 +19,8 @@ function gamma(lines::AbstractArray{<:AbstractArray{Bool}})
     return [b >= threshold for b in total] |> bb -> foldl(((g,b)->g*2+b), bb; init = 0)
 end
 
-epsilon(lines::Array{<:AbstractString}) = epsilon([[c=='1' for c in line] for line in lines])
-function epsilon(lines::AbstractArray{<:AbstractArray{Bool}})
-    @show lines
+ϵ(lines::Array{<:AbstractString}) = ϵ([[c=='1' for c in line] for line in lines])
+function ϵ(lines::AbstractArray{<:AbstractArray{Bool}})
     total = zeros(Int, length(lines[1]))
     for line in  lines
         total += line
@@ -30,12 +29,12 @@ function epsilon(lines::AbstractArray{<:AbstractArray{Bool}})
     return [b < threshold for b in total] |>( bb -> foldl(((g,b)->g*2+b), bb) )
 end
 
-lifeSupportRating(lines) = (@show oxygenGeneratorRating(lines)) * (@show co2ScrubberRating(lines))
+lifeSupportRating(lines) = oxygenGeneratorRating(lines) * co2ScrubberRating(lines)
 
 oxygenGeneratorRating(lines::AbstractArray{<:AbstractString}) = oxygenGeneratorRating([[c=='1' for c in line] for line in lines])
 function oxygenGeneratorRating(lines::AbstractArray{<:AbstractArray{Bool}})
     for bit in 1:length(lines[1])
-        bitValue = gamma(lines) & (1<<(length(lines[1])-bit)) != 0
+        bitValue = γ(lines) & (1<<(length(lines[1])-bit)) != 0
         lines = filter(l->l[bit] == bitValue, lines)
         if length(lines) == 1
             break
@@ -49,7 +48,7 @@ end
 co2ScrubberRating(lines::AbstractArray{<:AbstractString}) = co2ScrubberRating([[c=='1' for c in line] for line in lines])
 function co2ScrubberRating(lines)
     for bit in 1:length(lines[1])
-        @show bitValue = epsilon(@show lines) & (1<<(length(lines[1])-bit)) != 0
+        bitValue = ϵ(lines) & (1<<(length(lines[1])-bit)) != 0
         lines = filter(l->l[bit] == bitValue, lines)
         if (length(lines) == 1)
             break

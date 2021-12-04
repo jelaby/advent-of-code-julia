@@ -43,15 +43,13 @@ function isWinner(card, ticks)
 end
 
 
-function bingoResult(lines)
+function bingoGame(lines)
     (numbers,cards) = createGame(lines)
 
     ticks = zeros(Bool, size(cards))
 
-    winningNumber = nothing
-    winningCard = nothing
-    winningTicks = nothing
     winningCards = []
+    results = []
 
     for number in numbers
         for i in setdiff(1:size(cards,3), winningCards)
@@ -64,17 +62,19 @@ function bingoResult(lines)
             end
 
             if isWinner(card, cardTicks)
+                push!(results, (number, card, cardTicks))
                 push!(winningCards,i)
-                winningNumber = number
-                winningCard = card
-                winningTicks = cardTicks
             end
         end
     end
-    return calcResult(winningNumber, winningCard, winningTicks)
+    return results
 end
 
+part1(lines) = bingoGame(lines)[1] |> result -> calcResult(result...)
+part2(lines) = bingoGame(lines)[end] |> result -> calcResult(result...)
 
-@test bingoResult(exampleLines(4,1)) == 1924
+@test part1(exampleLines(4,1)) == 4512
+@test part2(exampleLines(4,1)) == 1924
 
-lines(4) |> ll -> @time bingoResult(ll) |> show
+lines(4) |> ll -> @time part1(ll) |> show
+lines(4) |> ll -> @time part2(ll) |> show

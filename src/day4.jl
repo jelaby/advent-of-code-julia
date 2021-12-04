@@ -28,6 +28,21 @@ function calcResult(number, card, ticks)
     return number * sum(filter(i->!ticks[i], eachindex(ticks)) .|> i->card[i])
 end
 
+function isWinner(card, ticks)
+    for j in 1:size(card, 2)
+        if reduce(&, ticks[:,j])
+            return true
+        end
+    end
+    for j in 1:size(card, 1)
+        if reduce(&, ticks[j,:])
+            return true
+        end
+    end
+    return false
+end
+
+
 function bingoResult(lines)
     (numbers,cards) = createGame(lines)
 
@@ -39,33 +54,20 @@ function bingoResult(lines)
     winningCards = []
 
     for number in numbers
-        for i in 1:size(cards,3)
-                for j in 1:size(cards, 2)
-                    for k in 1:size(cards, 1)
-                        if cards[k,j,i] == number
-                            ticks[k,j,i] = true
-                        end
-                    end
+        for i in setdiff(1:size(cards,3), winningCards)
+            card=view(cards, :,:,i)
+            cardTicks=view(ticks, :,:,i)
+            for j in eachindex(card)
+                if card[j] == number
+                    cardTicks[j] = true
                 end
-        end
-        for i in 1:size(cards,3)
-            if i ∉ winningCards
-                for j in 1:size(cards, 2)
-                    if length(filter(x->x, ticks[:,j,i])) == size(cards, 1)
-                        push!(winningCards,i)
-                        winningNumber = number
-                        winningCard = deepcopy(cards[:,:,i])
-                        winningTicks = deepcopy(ticks[:,:,i])
-                    end
-                end
-                for j in 1:size(cards, 1)
-                    if length(filter(x->x, ticks[j,:,i])) == size(cards, 2)
-                        push!(winningCards,i)
-                        winningNumber = number
-                        winningCard = deepcopy(cards[:,:,i])
-                        winningTicks = deepcopy(ticks[:,:,i])
-                    end
-                end
+            end
+
+            if isWinner(card, cardTicks)
+                push!(winningCards,i)
+                winningNumber = number
+                winningCard = card
+                winningTicks = cardTicks
             end
         end
     end

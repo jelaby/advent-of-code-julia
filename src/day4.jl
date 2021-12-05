@@ -48,11 +48,11 @@ function bingoGame(lines)
 
     ticks = zeros(Bool, size(cards))
 
-    winningCards = []
+    cardsInPlay = [1:size(cards,3)...]
     results = []
 
     for number in numbers
-        for i in setdiff(1:size(cards,3), winningCards)
+        for i in [cardsInPlay...]
             card=view(cards, :,:,i)
             cardTicks=view(ticks, :,:,i)
             for j in eachindex(card)
@@ -63,7 +63,7 @@ function bingoGame(lines)
 
             if isWinner(card, cardTicks)
                 push!(results, (number, card, cardTicks))
-                push!(winningCards,i)
+                setdiff!(cardsInPlay, [i])
             end
         end
     end

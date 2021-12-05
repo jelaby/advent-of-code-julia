@@ -1,6 +1,6 @@
 #=
 day5:
-- Julia version: 1.5.2
+- Julia version: 1.7.0
 - Author: Paul.Mealor
 - Date: 2021-12-05
 =#
@@ -16,8 +16,16 @@ parseLines(lines) = parseLine.(lines)
 
 maxX(lines) = flatten(lines) .|> (cc -> cc[1]) |> xx -> max(xx...)
 maxY(lines) = flatten(lines) .|> (cc -> cc[2]) |> yy -> max(yy...)
-maxCoord(lines) = (maxX(lines), maxY(lines))
-@test maxCoord([([1,2],[3,4]),([5,3],[1,2])]) == (5,4)
+maxCoord(lines) = [maxX(lines), maxY(lines)]
+@test maxCoord([([1,2],[3,4]),([5,3],[1,2])]) == [5,4]
+
+minX(lines) = flatten(lines) .|> (cc -> cc[1]) |> xx -> min(xx...)
+minY(lines) = flatten(lines) .|> (cc -> cc[2]) |> yy -> min(yy...)
+minCoord(lines) = [minX(lines), minY(lines)]
+@test minCoord([([1,2],[0,4]),([5,3],[1,2])]) == [0,2]
+
+mapOffset(lines) = [1,1] - minCoord(lines)
+mapSize(lines) = maxCoord(lines) + mapOffset(lines)
 
 direction(line) = direction(line[1],line[2])
 direction(start, finish) = sign.(finish - start)
@@ -26,14 +34,16 @@ direction(start, finish) = sign.(finish - start)
 @test direction(([7,1],[1,7])) == [-1,1]
 
 function createMap(lines)
-    map = zeros(Int, maxCoord(lines)...)
+    map = zeros(Int, mapSize(lines)...)
+    offset = mapOffset(lines)
 
     for line in lines
-        point = line[1]
+        point = line[1] + offset
+        endPoint = line[2] + offset
         dir = direction(line)
         while true
             map[point...]+=1
-            if point == line[2]
+            if point == endPoint
                 break
             end
             point += dir

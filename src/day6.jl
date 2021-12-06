@@ -11,7 +11,7 @@ using DataStructures: counter
 initialAges(lines) = split(lines[1], ",") |> age -> parse.(Int, age)
 @test initialAges(["4,6,3,4"]) == [4,6,3,4]
 
-ageMap(ages) = Dict(counter(ages)...)
+ageMap(ages) = Dict(counter(ages)...) |> r -> Dict((k,BigInt(v)) for (k,v) in r)
 @test ageMap([4,6,3,4,6]) == Dict(3=>1, 4=>2, 6=>2)
 
 function round(ages)
@@ -50,3 +50,7 @@ part1(lines, count) = lines |> initialAges |> ageMap |> ages -> rounds(ages, cou
 
 lines(6) |> ll -> @time part1(ll, 80) |> show
 lines(6) |> ll -> @time part1(ll, 256) |> show
+lines(6) |> ll -> @time part1(ll, 3650) |> show
+lines(6) |> ll -> @time part1(ll, 3651) |> show
+lines(6) |> ll -> @time part1(ll, 3652) |> show
+lines(6) |> ll -> @time part1(ll, 3653) |> show

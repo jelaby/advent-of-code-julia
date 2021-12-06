@@ -65,6 +65,7 @@ part2(lines) = parseLines(lines) |> createMap |> map -> count(x -> x>=2, map)
 
 
 @test part1(exampleLines(5,1)) == 5
+@test part2(exampleLines(5,1)) == 12
 
 
 lines(5) |> ll -> @time part1(ll) |> show

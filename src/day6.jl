@@ -46,5 +46,7 @@ countFishes(ages) = sum(values(ages))
 part1(lines, count) = lines |> initialAges |> ageMap |> ages -> rounds(ages, count) |> countFishes
 @test part1(exampleLines(6,1), 18) == 26
 @test part1(exampleLines(6,1), 80) == 5934
+@test part1(exampleLines(6,1), 256) == 26984457539
 
 lines(6) |> ll -> @time part1(ll, 80) |> show
+lines(6) |> ll -> @time part1(ll, 256) |> show

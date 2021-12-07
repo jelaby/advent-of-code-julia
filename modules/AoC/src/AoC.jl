@@ -14,11 +14,15 @@ julia>
 module AoC
 
     export lines, exampleLines
+    export firstLine, firstExampleLine
     export ints, exampleInts
     export parseLine
 
     lines(day) = open(readlines, "src/day" * string(day) * "-input.txt")
     exampleLines(day, n) = open(readlines, "src/day" * string(day) * "-example-" * string(n) * ".txt")
+
+    firstLine(day) = open(readline, "src/day" * string(day) * "-input.txt")
+    firstExampleLine(day, n) = open(readline, "src/day" * string(day) * "-example-" * string(n) * ".txt")
 
     ints(day) = lines(day) |> ll -> parse.(Int, ll)
     exampleInts(day, n) = exampleLines(day, n) |> ll -> parse.(Int, ll)

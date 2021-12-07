@@ -6,10 +6,6 @@ day6:
 =#
 
 ages = zeros(BigInt, 9)
-for age in open(readline, "src/day6-input.txt") |> l -> split(l, ",") |> age -> parse.(Int, age)
-    ages[age + 1] += 1
-end
-for round in 1:256
-    global ages = [ages[2:7]; ages[8] + ages[1]; ages[9]; ages[1]]
-end
+open(readline, "src/day6-input.txt") |> l -> split(l, ",") |> aa -> parse.(Int, aa) .|> a -> ages[a + 1] += 1
+1:256 .|> _ -> global ages = [ages[2:7]; ages[8] + ages[1]; ages[9]; ages[1]]
 show(sum(ages))

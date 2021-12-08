@@ -17,7 +17,10 @@ totalDistance(candidate, positions) = sum(p -> abs(candidate - p), positions)
 @test totalDistance(3,[16,1,2,0,4,2,7,1,2,14]) == 39
 @test totalDistance(10,[16,1,2,0,4,2,7,1,2,14]) == 71
 
-totalDistance2(candidate, positions) = sum(p -> sum(1:abs(candidate - p)), positions)
+totalDistance2(candidate, positions) = sum(positions) do p
+    distance = abs(candidate - p)
+    return distance * (distance + 1) ÷ 2
+end
 @test totalDistance2(4,[4,4]) == 0
 @test totalDistance2(5,[16,1,2,0,4,2,7,1,2,14]) == 168
 @test totalDistance2(2,[16,1,2,0,4,2,7,1,2,14]) == 206

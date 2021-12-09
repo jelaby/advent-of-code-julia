@@ -76,9 +76,6 @@ function evaluateCipherCandidate(displayedCombos, displayedCombo, segmentMapping
             for c in eachindex(candidateMappingFrom)
                 candidateMappings[candidateMappingFrom[c]] = intersect(candidateMappings[candidateMappingFrom[c]], candidateMappingTo[c])
                 if isempty(candidateMappings[candidateMappingFrom[c]])
-                    #if segmentMappings == Dict('d' => Set('a'), 'e' => Set('b'), 'a' => Set('c'), 'f' => Set('d'), 'g' => Set('e'), 'b' => Set('f'), 'c' => Set('g'))
-                    #    @show candidateMappingFrom, candidateMappingTo, candidateMappings
-                    #end
                     okMapping = false
                     break
                 end
@@ -86,7 +83,7 @@ function evaluateCipherCandidate(displayedCombos, displayedCombo, segmentMapping
             if okMapping
                 result = evaluateCipher(setdiff(displayedCombos,[displayedCombo]), candidateMappings, setdiff(expectedCombos, [expectedDisplay]))
                 if !isnothing(result)
-                    return @show result
+                    return result
                 end
             end
         end

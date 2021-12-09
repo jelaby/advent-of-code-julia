@@ -10,7 +10,7 @@ using StructEquality # https://docs.juliahub.com/StructEquality/TwsrV/1.0.0/
 using Base.Iterators: flatten
 using Memoize
 
-DIGITS = Dict('0'=>"abcefg",'1'=>"cf",'2'=>"ecdeg",'3'=>"acdfg",'4'=>"bcdf",'5'=>"abdfg",'6'=>"abdefg",'7'=>"acf",'8'=>"abcdefg",'9'=>"abcdfg")
+DIGITS = Dict('0'=>"abcefg",'1'=>"cf",'2'=>"acdeg",'3'=>"acdfg",'4'=>"bcdf",'5'=>"abdfg",'6'=>"abdefg",'7'=>"acf",'8'=>"abcdefg",'9'=>"abcdfg")
 DIGIT_DECODER = Dict((v=>k) for (k,v) in DIGITS)
 LENGTHS = Dict((k=>length(v)) for (k,v) in DIGITS)
 UNIQUE_LENGTHS = Dict((v=>k) for (k,v) in filter((pair)->count(l->l==pair[2],values(LENGTHS))==1, LENGTHS))

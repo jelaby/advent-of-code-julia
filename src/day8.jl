@@ -56,14 +56,12 @@ end
 function evaluateCipher(combos)
     # keys are the displayed segments, values are the actual values
     segmentMappings = Dict(c => Set(SEGMENT_NAMES) for c in SEGMENT_NAMES)
-    return evaluateCipher(combos, segmentMappings)
+    return Dict(k=>[v...][1] for (k,v) in evaluateCipher(combos, segmentMappings))
 end
 
 function evaluateCipherCandidate(displayedCombos, displayedCombo, segmentMappings, expectedCombos)
-    displayedCombos, displayedCombo, segmentMappings
-
     if isempty(displayedCombos)
-        return displayedCombos
+        return segmentMappings
     end
 
     actualDisplay = [c for c in displayedCombo]
@@ -94,7 +92,7 @@ end
 function evaluateCipher(displayedCombos, segmentMappings, expectedCombos=[values(DIGITS)...])
 
     if isempty(displayedCombos)
-        return displayedCombos
+        return segmentMappings
     end
 
     fixedLengthCombos = filter(c -> length(c) ∈ keys(UNIQUE_LENGTHS), displayedCombos); lt=(x,y)->length(x)<length(y)
@@ -104,7 +102,6 @@ function evaluateCipher(displayedCombos, segmentMappings, expectedCombos=[values
         return evaluateCipherCandidate(displayedCombos, displayedCombo, segmentMappings, expectedCombos)
     end
 
-    @show displayedCombos
     for displayedCombo in displayedCombos
         result = evaluateCipherCandidate(displayedCombos, displayedCombo, segmentMappings, expectedCombos)
         if !isnothing(result)
@@ -112,37 +109,23 @@ function evaluateCipher(displayedCombos, segmentMappings, expectedCombos=[values
         end
     end
     return nothing
-
-
-
-    #for (actualLength,actualDisplay) in UNIQUE_LENGTHS
-    #    @show displayedCombo = filter(c -> length(c) == actualLength, combos)[1]
-    #    @show possibilities = Set(c for c in DIGITS[actualDisplay])
-    #    for c in displayedCombo
-    #        segmentMappings[c] = intersect(segmentMappings[c], possibilities)
-    #    end
-    #end
-
-    #while any(m->length(m) > 1, values(segmentMappings))
-    #    segmentMapping = argmin(mapping->length(mapping[2]), filter(mapping->length(mapping[2])>1, segmentMappings))
-    #    for possibleActual in segmentMapping[2]
-    #        candidateSegmentMappings = Dict((k=>setdiff(v,Set(possibleActual))) for (k,v) in segmentMappings)
-    #        candidateSegmentMappings[segmentMapping[1]] = Set(possibleActual)
-    #        if !any(mapping->isempty(mapping[2]), candidateSegmentMappings)
-    #            finalMapping = evaluateCipher(combos, candidateSegmentMappings)
-    #            if all(mapping->length(mapping[2])==1, finalMapping)
-    #                return Dict(k=>[v...][1] for (k,v) in finalMapping)
-    #            end
-    #        end
-    #    end
-    #end
-
-    @show segmentMappings
 end
 @test evaluateCipher(["acedgfb","cdfbe","gcdfa","fbcad","dab","cefabd","cdfgeb","eafb","cagedb","ab"]) == Dict('d'=>'a','e'=>'b','a'=>'c','f'=>'d','g'=>'e','b'=>'f','c'=>'g')
 
+decipher(displayedCombos,cipher) = [decipher(d,cipher) for d in displayedCombos]
+function decipher(displayedCombo::AbstractString, cipher)
+    return String(sort([cipher[c] for c in displayedCombo]))
+end
+@test decipher("acedgfb", Dict('d'=>'a','e'=>'b','a'=>'c','f'=>'d','g'=>'e','b'=>'f','c'=>'g') ) == "abcdefg"
+
+decode(display) = String([DIGIT_DECODER[d] for d in display])
+@test decode(["abdfg"]) == "5"
+@test decode(["abdfg","acdfg"]) == "53"
+
 function evaluateDisplay(display::Display)
     cipher = evaluateCipher(display.combos)
+    correctedDisplay = decipher(display.display, cipher)
+    decode(correctedDisplay)
 end
 
 @test evaluateDisplay(Display(["acedgfb","cdfbe","gcdfa","fbcad","dab","cefabd","cdfgeb","eafb","cagedb","ab"],["cdfeb","fcadb","cdfeb","cdbaf"])) == "5353"
@@ -168,4 +151,5 @@ end
 @test part2(exampleLines(8,2)) == 61229
 
 lines(8) |> ll -> @time part1(ll) |> show
-#lines(8) |> ll -> @time part2(ll) |> show
+exampleLines(8,2) |> ll -> @time part2(ll) |> show
+lines(8) |> ll -> @time part2(ll) |> show

@@ -35,14 +35,12 @@ part1(lines) = parseCaveMap(lines) |> lowpointHeights |> hh -> sum(h+1 for h in 
 @test part1(exampleLines(9,1)) == 15
 
 function findBasin(A, I, basin=Set())
-    if I ∈ basin
+    if I ∈ basin || !checkbounds(Bool, A, I) || A[I] >= 9
         return basin
     else
         basin = union(basin, [I])
         for J in [I+n for n in NEIGHBOURS]
-            if J ∉ basin && checkbounds(Bool, A, J) && A[J] < 9 && A[J] > A[I]
-                basin = union(basin, findBasin(A, J, basin))
-            end
+            basin = findBasin(A, J, basin)
         end
         return basin
     end

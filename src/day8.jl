@@ -17,7 +17,8 @@ UNIQUE_LENGTHS = Dict((v=>k) for (k,v) in filter((pair)->count(l->l==pair[2],val
 SEGMENT_NAMES = ['a','b','c','d','e','f','g']
 
 @memoize Dict allpermutations(n::Number) = allpermutations([1:n...])
-function allpermutations(n::Vector)
+@memoize Dict allpermutations(n::Vector) = allpermutationssorted(sort(n))
+@memoize Dict function allpermutationssorted(n::Vector)
     if length(n) == 1
         return [n]
     end

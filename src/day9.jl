@@ -22,10 +22,13 @@ getOrMax(A,I) = checkbounds(Bool,A,I) ? A[I] : typemax(eltype(A))
 @test getOrMax([[1,2] [5,7]], CartesianIndex(0,1)) == typemax(Int)
 @test getOrMax([[1,2] [5,7]], CartesianIndex(3,1)) == typemax(Int)
 
-lowpointHeights(caveMap) = caveMap[vcat(filter(CartesianIndices(caveMap)) do i
+lowpointLocations(caveMap) = vcat(filter(CartesianIndices(caveMap)) do i
     h = caveMap[i]
     return all(getOrMax(caveMap, i+j) > h for j in NEIGHBOURS)
-end...)]
+end...)
+@test lowpointLocations(parseCaveMap(exampleLines(9,1))) == CartesianIndex.([(2,1),(10,1),(3,3),(7,5)])
+
+lowpointHeights(caveMap) = caveMap[lowpointLocations(caveMap)]
 @test lowpointHeights(parseCaveMap(exampleLines(9,1))) == [1,0,5,5]
 
 part1(lines) = parseCaveMap(lines) |> lowpointHeights |> hh -> sum(h+1 for h in hh)

@@ -71,4 +71,6 @@ end
 @test part2(firstExampleLine(7,1)) == 168
 
 firstLine(7) |> l -> @time part1(l) |> show
+firstLine(7) |> l -> @time part1(l) |> show
+firstLine(7) |> l -> @time part2(l) |> show
 firstLine(7) |> l -> @time part2(l) |> show

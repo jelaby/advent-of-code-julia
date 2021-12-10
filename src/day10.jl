@@ -12,24 +12,26 @@ SCORES = Dict(')'=>3, ']'=>57, '}'=>1197, '>'=>25137)
 CLOSERS = Dict('('=>')', '['=>']', '{'=>'}', '<'=>'>')
 AC_SCORES = Dict(')'=>1, ']'=>2, '}'=>3, '>'=>4)
 
-function incorrectChar(line)
+function syntaxCheck(line)
     expectedClosers = []
     for c in line
         closer = get(CLOSERS, c, nothing)
         if isnothing(closer)
             if isempty(expectedClosers)
-                return nothing
+                return (nothing, expectedClosers)
             end
-            expectedC = pop!(expectedClosers)
+            expectedC = popfirst!(expectedClosers)
             if expectedC != c
-                return c
+                return (c, [])
             end
         else
-            push!(expectedClosers, CLOSERS[c])
+            pushfirst!(expectedClosers, CLOSERS[c])
         end
     end
-    return nothing
+    return (nothing, expectedClosers)
 end
+
+incorrectChar(line) = syntaxCheck(line)[1]
 @test incorrectChar("{>") == '>'
 @test incorrectChar("{()>") == '>'
 @test incorrectChar("{<)") == ')'
@@ -41,24 +43,7 @@ part1(lines) = incorrectChar.(lines) |> cc -> sum(isnothing(c) ? 0 : SCORES[c] f
 @test part1(exampleLines(10,1)) == 26397
 
 
-function autocompleteChars(line)
-    expectedClosers = []
-    for c in line
-        closer = get(CLOSERS, c, nothing)
-        if isnothing(closer)
-            if isempty(expectedClosers)
-                return []
-            end
-            expectedC = popfirst!(expectedClosers)
-            if expectedC != c
-                return []
-            end
-        else
-            pushfirst!(expectedClosers, CLOSERS[c])
-        end
-    end
-    return expectedClosers
-end
+autocompleteChars(line) = syntaxCheck(line)[2]
 
 function acScore(chars)
     score = 0

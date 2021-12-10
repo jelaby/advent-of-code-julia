@@ -10,6 +10,7 @@ using AoC, Test
 
 SCORES = Dict(')'=>3, ']'=>57, '}'=>1197, '>'=>25137)
 CLOSERS = Dict('('=>')', '['=>']', '{'=>'}', '<'=>'>')
+AC_SCORES = Dict(')'=>1, ']'=>2, '}'=>3, '>'=>4)
 
 function incorrectChar(line)
     expectedClosers = []
@@ -39,4 +40,48 @@ part1(lines) = incorrectChar.(lines) |> cc -> sum(isnothing(c) ? 0 : SCORES[c] f
 
 @test part1(exampleLines(10,1)) == 26397
 
+
+function autocompleteChars(line)
+    expectedClosers = []
+    for c in line
+        closer = get(CLOSERS, c, nothing)
+        if isnothing(closer)
+            if isempty(expectedClosers)
+                return []
+            end
+            expectedC = popfirst!(expectedClosers)
+            if expectedC != c
+                return []
+            end
+        else
+            pushfirst!(expectedClosers, CLOSERS[c])
+        end
+    end
+    return expectedClosers
+end
+
+function acScore(chars)
+    score = 0
+    for c in chars
+        score *= 5
+        score += AC_SCORES[c]
+    end
+    return score
+end
+@test acScore(['}','}',']',']',')','}',')',']']) == 288957
+
+middleItem(A) = A[(length(A)+1) ÷ 2]
+@test middleItem(['a','b','c']) == 'b'
+
+function part2(lines)
+    lines = filter(l->isnothing(incorrectChar(l)), lines)
+    allChars = autocompleteChars.(lines)
+    scores = acScore.(allChars)
+    sort!(scores)
+    return middleItem(scores)
+end
+
+@test part2(exampleLines(10,1)) == 288957
+
 lines(10) |> ll -> @time part1(ll) |> show
+lines(10) |> ll -> @time part2(ll) |> show

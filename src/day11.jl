@@ -36,7 +36,7 @@ function round!(M)
     end
 
     flashes = 0
-    for I in CartesianIndices(M)
+    for I in eachindex(M)
         if M[I] > 9
             flashes += 1
             M[I] = 0

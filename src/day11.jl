@@ -62,8 +62,22 @@ end
 @test rounds!(exampleIntMap(11,1), 3) == 35+45
 @test rounds!(exampleIntMap(11,1), 10) == 204
 
-part1(M) = rounds!(M, 100)
+function findBrightFlash(M)
+    round = 0
+    while true
+        round += 1
+        flashes = round!(M)
+        if flashes == length(M)
+            return round
+        end
+    end
+end
 
+part1(M) = rounds!(M, 100)
 @test part1(exampleIntMap(11,1)) == 1656
 
+part2(M) = findBrightFlash(M)
+@test part2(exampleIntMap(11,1)) == 195
+
 intMap(11) |> m -> @time part1(m) |> show
+intMap(11) |> m -> @time part2(m) |> show

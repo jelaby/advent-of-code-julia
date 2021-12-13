@@ -61,4 +61,37 @@ function part1(lines)
 end
 @test part1(exampleLines(13,1)) == 17
 
+using FileIO, ColorTypes, FixedPointNumbers
+
+function part2(lines)
+    (dots, folds) = parseFile(lines)
+
+    for f in folds
+        dots = fold(dots, f)
+    end
+
+    image = zeros(RGB{N0f8}, max(get.(dots,2,0)...)+1, max(get.(dots,1,0)...)+1)
+    for dot in dots
+        @show dot
+        image[CartesianIndex((reverse(dot))...) + CartesianIndex(1,1)] = 1
+    end
+
+    @show size(image)
+    @show size(image,1)
+    @show size(image,2)
+    for x in 1:size(image,1)
+        line = ""
+        for y in 1:size(image,2)
+            line *= image[x,y] == RGB{N0f8}(0) ? "." : "#"
+        end
+        println(line)
+    end
+
+
+    save("target/day13.gif", image)
+end
+@test part1(exampleLines(13,1)) == 17
+
 @show lines(13) |> ll -> @time part1(ll)
+
+@time part2(lines(13))

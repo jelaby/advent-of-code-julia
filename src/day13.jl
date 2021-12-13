@@ -63,6 +63,9 @@ end
 
 using FileIO, ColorTypes, FixedPointNumbers
 
+# do not transpose RGB
+Base.transpose(x::RGB) = x
+
 function part2(lines)
     (dots, folds) = parseFile(lines)
 
@@ -70,25 +73,30 @@ function part2(lines)
         dots = fold(dots, f)
     end
 
-    image = zeros(RGB{N0f8}, max(get.(dots,2,0)...)+1, max(get.(dots,1,0)...)+1)
+    origin = CartesianIndex(1,1)
+
+    image = zeros(RGB{N0f8}, max(get.(dots,1,0)...)+1, max(get.(dots,2,0)...)+1)
     for dot in dots
-        @show dot
-        image[CartesianIndex((reverse(dot))...) + CartesianIndex(1,1)] = 1
+        image[CartesianIndex(dot...) + origin] = RGB(1,0,0)
     end
 
-    @show size(image)
-    @show size(image,1)
-    @show size(image,2)
+    image = transpose(image)
+
     for x in 1:size(image,1)
         line = ""
         for y in 1:size(image,2)
-            line *= image[x,y] == RGB{N0f8}(0) ? "." : "#"
+            line *= image[x,y] == RGB{N0f8}(0) ? "  " : "██"
         end
         println(line)
     end
 
+    scale = 10
+    image2 = similar(image, size(image).*scale)
+    for I in CartesianIndices(image2)
+        image2[I] = image[CartesianIndex(Tuple(I-origin) .÷ scale) + origin]
+    end
 
-    save("target/day13.gif", image)
+    save("target/day13.gif", image2)
 end
 @test part1(exampleLines(13,1)) == 17
 

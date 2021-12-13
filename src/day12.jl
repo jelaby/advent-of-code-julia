@@ -18,7 +18,7 @@ end
 @test parseLink!(parseLink!(Dict(), "a-b"), "a-c") == Dict("a"=>["b","c"], "b"=>["a"], "c"=>["a"])
 
 function parseLinks(links)
-    result = Dict()
+    result = Dict{String, Vector{String}}()
     for link in links
         parseLink!(result, link)
     end
@@ -27,7 +27,7 @@ end
 
 @memoize manyVisitsAllowed(cave) = occursin(r"^[A-Z]+$", cave)
 
-visit(links, cave; allowTwoVisits=false) = visit!(links, cave, Set(), []; allowTwoVisits)
+visit(links, cave::T; allowTwoVisits=false) where T = visit!(links, cave, Set{Vector{T}}(), T[]; allowTwoVisits)
 function visit!(links, cave, paths, visited; allowTwoVisits=false)
     push!(visited, cave)
     if cave == "end"

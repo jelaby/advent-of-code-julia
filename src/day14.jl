@@ -47,46 +47,46 @@ function toVector(node::Node{T}) where T
 end
 @test toVector(Node('a',Node('b',nothing))) == ['a','b']
 
-doStep(input::Tuple) = doStep(input...)
+Step(input::Tuple) = doStep(input...)
 doStep(state::Vector{T}, rules::Vector{Rule}) where T = doStep(Node(state), rules) |> toVector
 function doStep(state::Node{T}, rules::Vector{Rule}) where T
-    result::Union{Nothing,Node{T}} = nothing
-    left = state.value
-    state = state.next
+    result = state
+    node = state
 
-    while !isnothing(state)
-        right = state.value
-        result = Node(left, result)
+    while !isnothing(node.next)
+        left = node.value
+        nextNode = node.next
+        right = nextNode.value
         for rule in rules
             if left == rule.left && right == rule.right
-                result = Node(rule.middle, result)
+                insert!(node, rule.middle)
             end
         end
-        left = right
+        node = nextNode
     end
-    result = Node(right, result)
     return result
 end
 @test doStep(parseInput(exampleLines(14,1))) == ['N','C','N','B','C','H','B']
 
 doSteps(input::Tuple, n) = doSteps(input..., n)
-doSteps(state::Vector{T}, rules::Vector{Rule}, n) where T = doSteps(Node(state), rules, n) |> toVector
+doSteps(state::Vector{T}, rules::Vector{Rule}, n) where T = doSteps(Node(state), rules, n)
 function doSteps(state, rules, n)
     for i in 1:n
         state = doStep(state, rules)
     end
     return state
 end
-@test doSteps(parseInput(exampleLines(14,1)),1) == [c for c in "NCNBCHB"]
-@test doSteps(parseInput(exampleLines(14,1)),2) == [c for c in "NBCCNBBBCBHCB"]
-@test doSteps(parseInput(exampleLines(14,1)),3) == [c for c in "NBBBCNCCNBBNBNBBCHBHHBCHB"]
-@test doSteps(parseInput(exampleLines(14,1)),4) == [c for c in "NBBNBNBBCCNBCNCCNBBNBBNBBBNBBNBBCBHCBHHNHCBBCBHCB"]
+@test doSteps(parseInput(exampleLines(14,1)),1) |> toVector == [c for c in "NCNBCHB"]
+@test doSteps(parseInput(exampleLines(14,1)),2) |> toVector == [c for c in "NBCCNBBBCBHCB"]
+@test doSteps(parseInput(exampleLines(14,1)),3) |> toVector == [c for c in "NBBBCNCCNBBNBNBBCHBHHBCHB"]
+@test doSteps(parseInput(exampleLines(14,1)),4) |> toVector == [c for c in "NBBNBNBBCCNBCNCCNBBNBBNBBBNBBNBBCBHCBHHNHCBBCBHCB"]
 
 function answer(lines, steps)
     state = doSteps(parseInput(lines), steps)
     counts = Dict{Char, Int}()
-    for e in state
-        counts[e] = get(counts,e,0) + 1
+    while state != nothing
+        counts[state.value] = get(counts,state.value,0) + 1
+        state = state.next
     end
     mostElementCount = argmax(pair->pair[2], counts)[2]
     leastElementCount = argmin(pair->pair[2], counts)[2]
@@ -96,6 +96,7 @@ part1(lines) = answer(lines, 10)
 part2(lines) = answer(lines, 40)
 @test part1(exampleLines(14,1)) == 1588
 @test part2(exampleLines(14,1)) == 2188189693529
+@show "testing complete"
 
 @show lines(14) |> ll -> @time part1(ll)
 @show lines(14) |> ll -> @time part2(ll)

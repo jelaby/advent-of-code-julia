@@ -35,15 +35,11 @@ parseInput(lines) = (toPairs(lines[1]), parseRule.(lines[3:end]))
 
 
 doStep(input::Tuple) = doStep(input...)
-function doStep(state, rules)
-    newState = copy(state)
+function doStep(state::T, rules) where T
+    newState = T()
     for rule in rules
         elementCount = get(state,rule.target,0)
         if elementCount != 0
-            newState[rule.target] -= elementCount
-            if newState[rule.target] == 0
-                delete!(newState, rule.target)
-            end
             for sequence in rule.results
                 newState[sequence] = get(newState,sequence,0) + elementCount
             end

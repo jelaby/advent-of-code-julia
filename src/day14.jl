@@ -21,7 +21,7 @@ end
 @test parseRule("AB -> C") == Rule("AB",["AC","CB"])
 
 function toPairs(line::T) where T
-    result = Dict{T,Int}()
+    result = Dict{T,BigInt}()
     for i in 1:length(line)-1
         pair = line[i:i+1]
         result[pair] = get(result,pair,0) + 1
@@ -68,7 +68,7 @@ end
 function answer(lines, steps)
     lastElement = lines[1][end]
     state = doSteps(parseInput(lines), steps)
-    counts = Dict{Char, Int}(lastElement=>1)
+    counts = Dict{Char, BigInt}(lastElement=>1)
     for (pair,count) in state
         counts[pair[1]] = get(counts,pair[1],0)+count
     end
@@ -84,3 +84,5 @@ part2(lines) = answer(lines, 40)
 
 @show lines(14) |> ll -> @time part1(ll)
 @show lines(14) |> ll -> @time part2(ll)
+@show lines(14) |> ll -> @time answer(ll,400)
+@show lines(14) |> ll -> @time answer(ll,4000)

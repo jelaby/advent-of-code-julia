@@ -7,22 +7,26 @@ day15:
 
 using AoC, Test
 
-const MOVES = [(1,0),(0,1),(-1,0),(0,-1)] .|> CartesianIndex
+neighbourOffsets(dims) = CartesianIndex{dims}[
+    [CartesianIndex(ntuple(i->i==j ? 1 : 0, dims)) for j in 1:dims];
+    [CartesianIndex(ntuple(i->i==j ? -1 : 0, dims)) for j in 1:dims]
+]
 
 function findBestMove(cave)
-    risks = fill(typemax(Int), size(cave))
-    risks[size(cave)...] = 0
+    risks = fill(length(cave)*max(cave...), size(cave))
+    risks[1] = 0
+
+    moves = neighbourOffsets(ndims(cave))
 
     finished = false
     while !finished
         finished = true
-        for i in size(cave,1):-1:1
-            for j in size(cave,2):-1:1
-                I = CartesianIndex(i,j)
-                risk = risks[I] + cave[I]
-                for move in MOVES
-                    J = I+move
-                    if checkbounds(Bool, cave, J) && risks[J] > risk
+        for I in CartesianIndices(cave)
+            for move in moves
+                J = I + move
+                if checkbounds(Bool, cave, J)
+                    risk = risks[I] + cave[J]
+                    if risk < risks[J]
                         risks[J] = risk
                         finished = false
                     end
@@ -31,8 +35,7 @@ function findBestMove(cave)
         end
     end
 
-
-    return risks[1,1]
+    return risks[end]
 end
 @test findBestMove([[1,2] [3,4]]) == 6
 @test findBestMove([[1,3,1] [1,1,1] [2,1,1]]) == 4

@@ -12,9 +12,11 @@ const MOVES = [(1,0),(0,1),(-1,0),(0,-1)] .|> CartesianIndex
 findBestMove(cave, position::Tuple) = findBestMove(cave, CartesianIndex(position))
 function findBestMove(cave, position::CartesianIndex, targetPosition::CartesianIndex = CartesianIndex(size(cave)), risks = setindex!(fill(typemax(Int), size(cave)),0, size(cave)...))
     if risks[position] != typemax(Int)
+        @show risks
         return risks[position]
     end
-    best = typemax(Int)
+    best = length(cave)*100
+    risks[position] = best # why is this a problem??
     for move in MOVES
         newPosition = position + move
         if checkbounds(Bool, cave, newPosition)
@@ -25,6 +27,7 @@ function findBestMove(cave, position::CartesianIndex, targetPosition::CartesianI
             end
         end
     end
+    @show risks
     return best
 end
 @test findBestMove([[1,2] [3,4]], (1,1)) == 6

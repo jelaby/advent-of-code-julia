@@ -9,40 +9,26 @@ using AoC, Test
 
 const MOVES = [(1,0),(0,1),(-1,0),(0,-1)] .|> CartesianIndex
 
-
-worstCaseResult(cave, startPosition, targetPosition) = cave[targetPosition] - 9 + 9*(+(Tuple(targetPosition)...) - +(Tuple(startPosition)...))
-bestCaseResult(cave, startPosition, targetPosition) = cave[targetPosition] + min(cave[targetPosition-CartesianIndex(1,0)],cave[targetPosition-CartesianIndex(0,1)]) - 2 + +(Tuple(targetPosition-startPosition)...)
-
 findBestMove(cave, position::Tuple) = findBestMove(cave, CartesianIndex(position))
-function findBestMove(cave, position::CartesianIndex, targetPosition::CartesianIndex = CartesianIndex(size(cave)), totalRisk = 0, best=worstCaseResult(cave, position, targetPosition), visited=Set{CartesianIndex}())
-    push!(visited, position)
+function findBestMove(cave, position::CartesianIndex, targetPosition::CartesianIndex = CartesianIndex(size(cave)), risks = setindex!(fill(typemax(Int), size(cave)),0, size(cave)...))
+    if risks[position] != typemax(Int)
+        return risks[position]
+    end
+    best = typemax(Int)
     for move in MOVES
         newPosition = position + move
         if checkbounds(Bool, cave, newPosition)
-            newTotalRisk = totalRisk + cave[newPosition]
-            if newPosition == targetPosition
-                @show newTotalRisk, visited
-                delete!(visited, position)
-                return newTotalRisk
-            end
-            if newTotalRisk+bestCaseResult(cave, newPosition, targetPosition) < best && newPosition ∉ visited
-                result = findBestMove(cave, newPosition, targetPosition, newTotalRisk, best, visited)
-                if result < best
-                    best = result
-                end
+            result = cave[newPosition] + findBestMove(cave, newPosition, targetPosition, risks)
+            if result < best
+                best = result
+                risks[position] = result
             end
         end
     end
-    delete!(visited, position)
     return best
 end
 @test findBestMove([[1,2] [3,4]], (1,1)) == 6
 @test findBestMove([[1,3,1] [1,1,1] [2,1,1]], (1,1)) == 4
-
-
-
-
-
 
 
 part1(cave) = findBestMove(cave, CartesianIndex(1,1))

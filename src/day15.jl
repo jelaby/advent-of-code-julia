@@ -9,29 +9,33 @@ using AoC, Test
 
 const MOVES = [(1,0),(0,1),(-1,0),(0,-1)] .|> CartesianIndex
 
-findBestMove(cave, position::Tuple) = findBestMove(cave, CartesianIndex(position))
-function findBestMove(cave, position::CartesianIndex, targetPosition::CartesianIndex = CartesianIndex(size(cave)), risks = setindex!(fill(typemax(Int), size(cave)),0, size(cave)...))
-    if risks[position] != typemax(Int)
-        @show risks
-        return risks[position]
-    end
-    best = length(cave)*100
-    risks[position] = best # why is this a problem??
-    for move in MOVES
-        newPosition = position + move
-        if checkbounds(Bool, cave, newPosition)
-            result = cave[newPosition] + findBestMove(cave, newPosition, targetPosition, risks)
-            if result < best
-                best = result
-                risks[position] = result
+function findBestMove(cave)
+    risks = fill(typemax(Int), size(cave))
+    risks[size(cave)...] = 0
+
+    finished = false
+    while !finished
+        finished = true
+        for i in size(cave,1):-1:1
+            for j in size(cave,2):-1:1
+                I = CartesianIndex(i,j)
+                risk = risks[I] + cave[I]
+                for move in MOVES
+                    J = I+move
+                    if checkbounds(Bool, cave, J) && risks[J] > risk
+                        risks[J] = risk
+                        finished = false
+                    end
+                end
             end
         end
     end
-    @show risks
-    return best
+
+
+    return risks[1,1]
 end
-@test findBestMove([[1,2] [3,4]], (1,1)) == 6
-@test findBestMove([[1,3,1] [1,1,1] [2,1,1]], (1,1)) == 4
+@test findBestMove([[1,2] [3,4]]) == 6
+@test findBestMove([[1,3,1] [1,1,1] [2,1,1]]) == 4
 
 
 function embiggen(cave)
@@ -50,13 +54,12 @@ function embiggen(cave)
     end
     return realCave
 end
-#@test embiggen([[1];;]) == [[1,2,3,4,5] [6,7,8,9,1] [2,3,4,5,6] [6,7,8,1,2] [3,4,5,6,7]]
 @test embiggen(exampleIntMap(15,1))[1:10,1:10] == exampleIntMap(15,1)
 @test embiggen(exampleIntMap(15,1)) == exampleIntMap(15,2)
 
-part1(cave) = findBestMove(cave, CartesianIndex(1,1))
+part1(cave) = findBestMove(cave)
 
-part2(cave) = findBestMove(embiggen(cave), (1,1))
+part2(cave) = findBestMove(embiggen(cave))
 
 
 @test part1(exampleIntMap(15,1)) == 40

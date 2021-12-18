@@ -119,7 +119,25 @@ magnitude(n::SfNumber) = 3*magnitude(n.left) + 2*magnitude(n.right)
 @test magnitude(sfparse("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]")) == 3488
 
 part1(lines) = magnitude(sfsum(sfparse.(lines)...))
-
 @test part1(exampleLines(18,1)) == 4140
 
+function part2(lines)
+    lines = sfparse.(lines)
+    biggest = 0
+    for i in eachindex(lines)
+        for j in eachindex(lines)
+            if i != j
+                value = magnitude(sfsum(lines[i],lines[j]))
+                if value > biggest
+                    biggest = value
+                end
+            end
+        end
+    end
+    return biggest
+end
+
+@test part2(exampleLines(18,1)) == 3993
+
 @show lines(18) |> ll -> @time part1(ll)
+@show lines(18) |> ll -> @time part2(ll)

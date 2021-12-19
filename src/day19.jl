@@ -82,7 +82,7 @@ transformations(M::Beacons) = transformations(length(M[1]))
 end
 @test length(transformations(3)) == 24
 
-function positionFit(M::Beacons, N::Beacons; minMatches=12)
+@memoize function positionFit(M::Beacons, N::Beacons; minMatches=12)
     coordsM = Set(tuple(m...) for m in M)
     for offsetM in M
         for offsetN in N
@@ -109,8 +109,8 @@ end
 transform(m, T) = T * m
 transform(m, T, offset) = transform(m, T) .+ offset
 
-transformCols(M, T, offset) = [transform(m, T, offset) for m in M]
-transformCols(M, T) = [T * m for m in M]
+transformCols(M, T, offset) = [m .+ offset for m in transformCols(M, T)]
+@memoize transformCols(M, T) = [transform(m, T) for m in M]
 @test transformCols([[3,4,5],], [[1,0,0] [0,1,0] [0,0,1]]) == [[3,4,5],]
 @test transformCols([[3,4,5],], [[1,0,0] [0,0,1] [0,-1,0]]) == [[3,-5,4],]
 
@@ -130,7 +130,8 @@ transformCols(M, T) = [T * m for m in M]
 ])
 @test length(Set([transform([1,2,3], T) for T in transformations(3)])) == 24
 
-function fit(M::Beacons, N::Beacons; minMatches=12)
+fit(M::Beacons, N::Beacons; minMatches=12) = fit(M, N, minMatches)
+@memoize function fit(M::Beacons, N::Beacons, minMatches)
     for T in transformations(M)
         offset = positionFit(M, transformCols(N, T); minMatches=minMatches)
         if !isnothing(offset)
@@ -195,6 +196,7 @@ function placeAll(M::Vector{Beacons}; minMatches=12)
             candidate = unfitted[I]
             (found, offset) = attemptFit!(fitted, candidate; minMatches=minMatches)
             if found
+                @show offset
                 push!(offsets, offset)
                 unfitted = unfitted[[1:I-1; I+1:end]]
                 break
@@ -203,7 +205,7 @@ function placeAll(M::Vector{Beacons}; minMatches=12)
         found || throw(ArgumentError("Found no candidates in " * string(unfitted) * " that fit " * string(fitted)))
     end
 
-    return (fitted, offsets)
+    return @show (fitted, offsets)
 end
 
 @test placeAll([
@@ -245,7 +247,7 @@ end
 #@test part1(exampleLines(19,1)[[1:27];[55:82]]) == 0
 #@test part1(exampleLines(19,1)[[28:54];[110:136]]) == 0
 
-#@test part1(exampleLines(19,1)) == 79
+@test part1(exampleLines(19,1)) == 79
 
 function part2(lines)
     M = parseLines(lines)

@@ -151,19 +151,19 @@ function attemptFit!(fitted::Vector{Beacons}, candidate::Beacons; minMatches=12)
         if !isnothing(result)
             candidate = transformCols(candidate, result...)
             push!(fitted, candidate)
-            return true
+            return (true, result[2])
         end
     end
-    return false
+    return (false, nothing)
 end
-@test attemptFit!([[[1,2],[1,4]],], [[1,2],[1,4]]; minMatches=2) == true
-@test attemptFit!([[[1,2],[1,4]],], [[2,2],[2,4]]; minMatches=2) == true
-@test attemptFit!([[[1,2],[1,4]],], [[2,2],[2,4]]; minMatches=3) === false
-@test attemptFit!([[[1,2],[1,4]],], [[2,-1],[4,-1]]; minMatches=2) == true
-@test attemptFit!([[[1,2],[1,4]],], [[2,-2],[4,-2]]; minMatches=2) == true
+@test attemptFit!([[[1,2],[1,4]],], [[1,2],[1,4]]; minMatches=2)[1] == true
+@test attemptFit!([[[1,2],[1,4]],], [[2,2],[2,4]]; minMatches=2)[1] == true
+@test attemptFit!([[[1,2],[1,4]],], [[2,2],[2,4]]; minMatches=3)[1] === false
+@test attemptFit!([[[1,2],[1,4]],], [[2,-1],[4,-1]]; minMatches=2)[1] == true
+@test attemptFit!([[[1,2],[1,4]],], [[2,-2],[4,-2]]; minMatches=2)[1] == true
 
 function testAttemptFit(fitted, candidate; minMatches=12)
-    return attemptFit!(fitted, candidate; minMatches=minMatches) ? fitted : nothing
+    return attemptFit!(fitted, candidate; minMatches=minMatches)[1] ? fitted : nothing
 end
 @test testAttemptFit([[[1,2],[1,4]]], [[1,2],[1,4]]; minMatches=2) == ([[[1,2],[1,4]],[[1,2],[1,4]]])
 @test testAttemptFit([[[1,2],[1,4]]], [[2,2],[2,4]]; minMatches=2) == ([[[1,2],[1,4]],[[1,2],[1,4]]])
@@ -187,13 +187,15 @@ end
 function placeAll(M::Vector{Beacons}; minMatches=12)
     fitted = M[1:1]
     unfitted = M[2:end]
+    offsets = Vector{Vector{Int}}()
 
     while !isempty(unfitted)
         found = false
         for I in eachindex(unfitted)
             candidate = unfitted[I]
-            if attemptFit!(fitted, candidate; minMatches=minMatches)
-                found = true
+            (found, offset) = attemptFit!(fitted, candidate; minMatches=minMatches)
+            if found
+                push!(offsets, offset)
                 unfitted = unfitted[[1:I-1; I+1:end]]
                 break
             end
@@ -201,13 +203,13 @@ function placeAll(M::Vector{Beacons}; minMatches=12)
         found || throw(ArgumentError("Found no candidates in " * string(unfitted) * " that fit " * string(fitted)))
     end
 
-    return fitted
+    return (fitted, offsets)
 end
 
 @test placeAll([
         [[1,2], [1,4], [3,6]],
         [[11,4], [13,6], [17,9]],
-    ]; minMatches=2) == [
+    ]; minMatches=2)[1] == [
         [[1,2], [1,4], [3,6]],
         [[1,4], [3,6], [7,9]],
     ]
@@ -215,7 +217,7 @@ end
         [[1,2], [1,4], [3,6]],
         [[27,19], [24,10-4], [27,13]],
         [[11,4], [13,6], [17,9], [14, -4]],
-    ]; minMatches=2) == [
+    ]; minMatches=2)[1] == [
         [[1,2], [1,4], [3,6]],
         [[1,4], [3,6], [7,9], [4,-4]],
         [[7,9], [4,-4], [7,3]],
@@ -223,7 +225,7 @@ end
 @test placeAll([
         [[1,2], [1,4], [1,5], [3,7]],
         [[-1,-4], [-1,-5], [-3,-7], [-2,-9]],
-    ]; minMatches=3) == [
+    ]; minMatches=3)[1] == [
         [[1,2], [1,4], [1,5], [3,7]],
         [[1,4], [1,5], [3,7], [2,9]],
     ]
@@ -233,19 +235,37 @@ deduplicate(M::Vector{Beacons}) = Set((tuple(coord...) for region in M for coord
 function part1(lines)
     M = parseLines(lines)
 
-    fitted = placeAll(M)
+    (fitted, offsets) = placeAll(M)
 
     return length(deduplicate(fitted))
 end
 
-
-@test part1(exampleLines(19,1)[[1:27;28:53]]) == 38
-@test part1(exampleLines(19,1)[[28:54;110:136]]) == 39
+#@test part1(exampleLines(19,1)[[1:27;28:53]]) == 38
+#@test part1(exampleLines(19,1)[[28:54;110:136]]) == 39
 #@test part1(exampleLines(19,1)[[1:27];[55:82]]) == 0
 #@test part1(exampleLines(19,1)[[28:54];[110:136]]) == 0
 
-@test part1(exampleLines(19,1)) == 79
+#@test part1(exampleLines(19,1)) == 79
+
+function part2(lines)
+    M = parseLines(lines)
+    (fitted, offsets) = placeAll(M)
+
+    maxDistance = 0
+    for I in offsets
+        for J in offsets
+            distance = +(abs.(J - I)...)
+            if distance > maxDistance
+                maxDistance = distance
+            end
+        end
+    end
+    return maxDistance
+end
+
+@test part2(exampleLines(19,1)) == 3621
 
 println("Testing complete")
 
+@show lines(19) |> ll -> @time part2(ll)
 @show lines(19) |> ll -> @time part1(ll)

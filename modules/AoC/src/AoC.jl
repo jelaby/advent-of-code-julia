@@ -20,11 +20,14 @@ module AoC
     export ints, exampleInts
     export parseLine
 
-    lines(day) = open(readlines, "src/day" * string(day) * "-input.txt")
-    exampleLines(day, n) = open(readlines, "src/day" * string(day) * "-example-" * string(n) * ".txt")
+    file(f, day) = open(f, "src/day" * string(day) * "-input.txt")
+    exampleFile(f, day, n) = open(f, "src/day" * string(day) * "-example-" * string(n) * ".txt")
 
-    firstLine(day) = open(readline, "src/day" * string(day) * "-input.txt")
-    firstExampleLine(day, n) = open(readline, "src/day" * string(day) * "-example-" * string(n) * ".txt")
+    lines(day) = file(readlines, day)
+    exampleLines(day, n) = exampleFile(readlines, day, n)
+
+    firstLine(day) = file(readline, day)
+    firstExampleLine(day, n) = exampleFile(readline, day, n)
 
     linesToCharMap(lines) = reshape([c for line in lines for c in line], length(lines[1]), length(lines))
     charMap(day) = lines(day) |> linesToCharMap

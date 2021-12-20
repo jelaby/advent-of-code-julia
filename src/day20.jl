@@ -7,7 +7,7 @@ day20:
 
 using AoC, Test
 
-lineToBools(line) = [c == '#' for c in line]
+lineToBools(line) = BitVector([c == '#' for c in line])
 
 function parseImage(lines)
     result = nothing
@@ -29,7 +29,7 @@ parseLines(lines) = (lineToBools(lines[1]), parseImage(lines[3:end]))
 
 
 function embiggen(image, border)
-    largeImage = zeros(eltype(image), size(image) .+ 2*border)
+    largeImage = fill!(similar(image, size(image) .+ 2*border), zero(eltype(image)))
     copyto!(largeImage, CartesianIndices((border+1:border+size(image,1), border+1:border+size(image,2))), image, CartesianIndices(image))
     return largeImage
 end
@@ -60,7 +60,7 @@ end
 function enhance(algo, image, n)
     image = embiggen(image, n+1)
 
-    prev = zeros(eltype(image), size(image))
+    prev = fill!(similar(image), zero(eltype(image)))
     target = image
 
     infinity = false

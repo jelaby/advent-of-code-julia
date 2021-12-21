@@ -78,19 +78,14 @@ function rungame(positions, squares, targetScore, sides, dice)
     while true
         incomplete = incompleteUniverses(universes, targetScore)
 
-        @show length(incomplete), length(universes)
-
         if isempty(incomplete)
             break
         end
 
         runround(universes, incomplete, player, squares, targetScore, sides, dice)
 
-        @show winCounts(universes)
-
         player = mod1(player + 1, length(positions))
     end
-    #@show [(u,universes[u]) for u in sort([keys(universes)...], by=u->universes[u])]
     return universes
 end
 
@@ -108,8 +103,6 @@ end
 
 function part2(positions; squares=10, targetScore=21, sides=3, dice=3)
     universes = rungame(positions, squares, targetScore, sides, dice)
-    @show +(values(winCounts(universes))...)
-    @show +(values(universes)...)
     return max(values(winCounts(universes))...)
 end
 

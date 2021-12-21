@@ -36,7 +36,7 @@ end
 @test rolls(3,3) == Dict(5 => 6, 4 => 3, 6 => 7, 7 => 6, 9 => 1, 8 => 3, 3 => 1)
 
 function incompleteUniverses(universes, targetScore)
-    result = Dict{Universe, BigInt}()
+    result = Dict{Universe, Int64}()
 
     for (universe,count) in universes
         if max(universe.scores...) < targetScore
@@ -73,7 +73,7 @@ end
 function rungame(positions, squares, targetScore, sides, dice)
     player = 1
 
-    universes = IdDict{Universe, BigInt}(Universe(positions)=>1)
+    universes = IdDict{Universe, Int64}(Universe(positions)=>1)
 
     while true
         incomplete = incompleteUniverses(universes, targetScore)
@@ -90,28 +90,28 @@ function rungame(positions, squares, targetScore, sides, dice)
 end
 
 function winCounts(universes)
-    result = Dict{Int, BigInt}()
+    result = Dict{Int, Int64}()
     for (universe, count) in universes
         winner = argmax(p->universe.scores[p], 1:length(universe.scores))
-        result[winner] = get(result, winner, big"0") + count
+        result[winner] = get(result, winner, 0) + count
     end
     return result
 end
 
 
-@test winCounts(rungame([8,8], 10, 2, 2, 2)) == Dict{Int, BigInt}(1=>18, 2=>4)
+@test winCounts(rungame([8,8], 10, 2, 2, 2)) == Dict{Int, Int64}(1=>18, 2=>4)
 
 function part2(positions; squares=10, targetScore=21, sides=3, dice=3)
     universes = rungame(positions, squares, targetScore, sides, dice)
     return max(values(winCounts(universes))...)
 end
 
-@test part2([4,8]; targetScore=1, sides=2, dice=1) == big"2"
-@test part2([4,8]; targetScore=2, sides=2, dice=2) == big"4"
-@test part2([9,4]; targetScore=2, sides=2, dice=1) == big"2"
-@test part2([9,9]; targetScore=2, sides=2, dice=1) == big"3"
-@test part2([8,8]; targetScore=2, sides=2, dice=2) == big"18"
-@test part2([4,8]; targetScore=2, sides=3, dice=3) == big"183"
-@test part2([4,8]) == big"444356092776315"
+@test part2([4,8]; targetScore=1, sides=2, dice=1) == 2
+@test part2([4,8]; targetScore=2, sides=2, dice=2) == 4
+@test part2([9,4]; targetScore=2, sides=2, dice=1) == 2
+@test part2([9,9]; targetScore=2, sides=2, dice=1) == 3
+@test part2([8,8]; targetScore=2, sides=2, dice=2) == 18
+@test part2([4,8]; targetScore=2, sides=3, dice=3) == 183
+@test part2([4,8]) == 444356092776315
 
 @show @time part2([7,5])

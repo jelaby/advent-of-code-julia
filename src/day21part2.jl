@@ -49,7 +49,7 @@ end
 function runround(universes, incomplete, player, squares, targetScore, sides, dice)
 
     for (universe,count) in incomplete
-        delete!(universes, universe)
+        universes[universe] -= count
 
         for (roll, rollCount) in rolls(sides, dice)
             positions = [universe.positions...]
@@ -60,6 +60,12 @@ function runround(universes, incomplete, player, squares, targetScore, sides, di
 
             newUniverse = Universe(positions, scores)
             universes[newUniverse] = get(universes, newUniverse, 0) + count * rollCount
+        end
+    end
+
+    for (universe, count) in universes
+        if count == 0
+            delete!(universes, universe)
         end
     end
 end
@@ -112,6 +118,7 @@ end
 @test part2([9,4]; targetScore=2, sides=2, dice=1) == big"2"
 @test part2([9,9]; targetScore=2, sides=2, dice=1) == big"3"
 @test part2([8,8]; targetScore=2, sides=2, dice=2) == big"18"
+@test part2([4,8]; targetScore=2, sides=3, dice=3) == big"183"
 @test part2([4,8]) == big"444356092776315"
 
 @show @time part2([7,5])

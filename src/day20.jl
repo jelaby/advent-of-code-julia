@@ -60,7 +60,7 @@ end
 function enhance(algo, image, n)
     image = embiggen(image, n+1)
 
-    prev = fill!(similar(image), zero(eltype(image)))
+    prev = similar(image)
     target = image
 
     infinity = false
@@ -72,11 +72,7 @@ function enhance(algo, image, n)
         infinity = algo[(infinity ? 0b111111111 : 0)+1]
     end
 
-    if target !== image
-        copyto!(image, CartesianIndices(image), target, CartesianIndices(target))
-    end
-
-    return image
+    return target
 end
 
 function showImage(image)

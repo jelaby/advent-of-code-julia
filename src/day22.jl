@@ -79,11 +79,7 @@ function divide(v::Volume, axis, offset)
     if v.min[axis] >= offset || v.max[axis] <= offset
         return [v]
     end
-    newmax = [v.max...]
-    newmax[axis] = offset
-    newmin = [v.min...]
-    newmin[axis] = offset
-    return [Volume(v.min, tuple(newmax...)), Volume(tuple(newmin...), v.max)]
+    return [Volume(v.min, ntuple(i->i==axis ? offset : v.max[i], length(v.min))), Volume(ntuple(i->i==axis ? offset : v.min[i], length(v.max)), v.max)]
 end
 @test divide(Volume(0,3,0,3,0,3), 2, -1) == [Volume(0,3,0,3,0,3)]
 @test divide(Volume(0,3,0,3,0,3), 2, 0) == [Volume(0,3,0,3,0,3)]

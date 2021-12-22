@@ -33,7 +33,7 @@ end
 @test parseLine("on x=-20..26,y=-36..17,z=-47..7") == Step(true, Volume((-20,-36,-47), (27,18,8)))
 
 Base.isempty(volume::Volume) = any(i->volume.min[i]>=volume.max[i], eachindex(volume.min))
-isnotempty(volume::Volume) = !isempty(volume)
+isnotempty(volume) = !isempty(volume)
 
 @show :volumeOf
 volumeOf(volumes) = sum(volumeOf, volumes)
@@ -149,7 +149,7 @@ function Base.:(-)(a::Volume, b::AbstractArray{Volume})
                 result[i] = EMPTY
             else
                 result[i] = newVolumes[i]
-                push!(result, newVolumes[2:end])
+                append!(result, newVolumes[2:end])
             end
         end
     end
@@ -167,12 +167,12 @@ function applyStep!(volumes, step)
                     stepVolumes[i] = EMPTY
                 else
                     stepVolumes[i] = newVolumes[1]
-                    push!(stepVolumes, newVolumes[2:end]...)
+                    append!(stepVolumes, newVolumes[2:end])
                 end
             end
             filter!(isnotempty, stepVolumes)
         end
-        push!(volumes, stepVolumes...)
+        append!(volumes, stepVolumes)
 
     else
         stepVolume = step.volume
@@ -182,7 +182,7 @@ function applyStep!(volumes, step)
                 volumes[i] = EMPTY
             else
                 volumes[i] = newVolumes[1]
-                push!(volumes, newVolumes[2:end]...)
+                append!(volumes, newVolumes[2:end])
             end
         end
         filter!(isnotempty, volumes)

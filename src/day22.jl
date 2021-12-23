@@ -136,59 +136,49 @@ function Base.:(-)(a::Volume, b::Volume)
     throw(ArgumentError("Cannot evaluate " * string(b) * " - " * string(a)))
 end
 
-function Base.:(-)(a::Volume, b::AbstractArray{Volume})
+function Base.:(-)(a::Volume, B::AbstractArray{Volume})
     result = [a]
-    for other in b
-        for i in eachindex(result)
-            newVolumes = result[i] - other
-            if isempty(newVolumes)
-                result[i] = EMPTY
-            else
-                result[i] = newVolumes[i]
-                append!(result, newVolumes[2:end])
-            end
-        end
+    for b in B
+        result = result - b
     end
-    return filter!(isnotempty, result)
+    return result
+end
+
+function Base.:(-)(A::AbstractArray{Volume}, B::AbstractArray{Volume})
+    result = similar(A, 0)
+    for b in B
+        newVolumes = A - b
+        append!(result, newVolumes)
+    end
+    return result
+end
+
+function Base.:(-)(A::AbstractArray{Volume}, b::Volume)
+    result = similar(A, 0)
+    for a in A
+        newVolumes = a - b
+        append!(result, newVolumes)
+    end
+    return result
 end
 
 @show :applyStep!
 function applyStep!(volumes, step)
     if step.state
-        stepVolumes = [step.volume]
-        for existing in volumes
-            for i in eachindex(stepVolumes)
-                newVolumes = stepVolumes[i] - existing
-                if isempty(newVolumes)
-                    stepVolumes[i] = EMPTY
-                else
-                    stepVolumes[i] = newVolumes[1]
-                    append!(stepVolumes, newVolumes[2:end])
-                end
-            end
-            filter!(isnotempty, stepVolumes)
-        end
+        stepVolumes = step.volume - volumes
         append!(volumes, stepVolumes)
 
     else
-        stepVolume = step.volume
-        for i in eachindex(volumes)
-            newVolumes = volumes[i] - stepVolume
-            if isempty(newVolumes)
-                volumes[i] = EMPTY
-            else
-                volumes[i] = newVolumes[1]
-                append!(volumes, newVolumes[2:end])
-            end
-        end
-        filter!(isnotempty, volumes)
+        newVolumes = volumes - step.volume
+        resize!(volumes, size(newVolumes)...)
+        copyto!(volumes, newVolumes)
 
     end
 
     return volumes
 end
 
-@test applyStep!([], Step(true, 1,1,1,1,1,1)) == [Volume((1,1,1),(2,2,2))]
+@test applyStep!(Volume[], Step(true, 1,1,1,1,1,1)) == [Volume((1,1,1),(2,2,2))]
 @test volumeOf(applyStep!([Volume((0,0,0),(2,2,2))],Step(false,1,1,1,1,1,1))) == 7
 @test volumeOf(applyStep!([Volume((0,0,0),(2,2,2))],Step(true,1,1,1,1,1,1))) == 8
 @test volumeOf(applyStep!([Volume((0,0,0),(2,2,2))],Step(true,2,2,2,2,2,2))) == 9

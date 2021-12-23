@@ -39,6 +39,12 @@ testInitial = [
 '#' '#' 'B' '#' 'C' '#' 'D' '#' 'C' '#' '#'
 ]
 
+testInitial2 = [
+'A' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+'#' '#' 'A' '#' 'D' '#' ' ' '#' 'B' '#' '#'
+'#' '#' 'B' '#' 'C' '#' 'D' '#' 'C' '#' '#'
+]
+
 @def_structequal struct Move
     finalState::Array{Char,2}
     cost::Int
@@ -83,17 +89,15 @@ end
 '#' '#' 'B' '#' 'C' '#' 'D' '#' 'C' '#' '#'
 ], 30)
 
-function potentialCorridorMoves!(result, initial, plan, type, initialPosition, position, direction)
+function potentialCorridorMoves(initial, plan, type, initialPosition, position, direction)
     P = position + direction
     while P[X]>=1 && P[X]<=size(initial, X)
         if plan[P] == ' ' && initial[P] == ' '
-            push!(result, moveFor(initial, type, initialPosition, P))
         elseif plan[P] == 'x'
             if plan[end,P[X]] == type
                 for y in lastindex(initial,1):-1:2
                     if initial[y,P[X]] == ' '
-                        push!(result, moveFor(initial, type, initialPosition, CartesianIndex(y,P[X])))
-                        break
+                        return (Move[moveFor(initial, type, initialPosition, CartesianIndex(y,P[X]))], true)
                     end
                 end
             end
@@ -103,23 +107,46 @@ function potentialCorridorMoves!(result, initial, plan, type, initialPosition, p
         end
         P += direction
     end
+
+    result = Move[]
+    P = position + direction
+    while P[X]>=1 && P[X]<=size(initial, X)
+        if plan[P] == ' ' && initial[P] == ' '
+            push!(result, moveFor(initial, type, initialPosition, P))
+        elseif plan[P] == 'x'
+        else
+            #blocked by another amphipod
+            break
+        end
+        P += direction
+    end
+    return (result, false)
 end
 
 function potentialCorridorMoves(initial, plan, type, initialPosition, position)::Array{Move}
     result = Move[]
-    potentialCorridorMoves!(result, initial, plan, type, initialPosition, position, LEFT)
-    potentialCorridorMoves!(result, initial, plan, type, initialPosition, position, RIGHT)
+    (result,final) = potentialCorridorMoves(initial, plan, type, initialPosition, position, LEFT)
+    if final
+        return result
+    end
+    (more,final) = potentialCorridorMoves(initial, plan, type, initialPosition, position, RIGHT)
+    if final
+        return more
+    end
+    append!(result, more)
     sort!(result; by=m->m.cost)
     return result
 end
 @test potentialCorridorMoves(testInitial, PLAN2, 'B', CartesianIndex(2,9), CartesianIndex(1,9)) == [
-    moveFor(testInitial, 'B', CartesianIndex(2,9), CartesianIndex(1,8)),
-    moveFor(testInitial, 'B', CartesianIndex(2,9), CartesianIndex(1,10)),
-    moveFor(testInitial, 'B', CartesianIndex(2,9), CartesianIndex(1,11)),
-    moveFor(testInitial, 'B', CartesianIndex(2,9), CartesianIndex(1,6)),
     moveFor(testInitial, 'B', CartesianIndex(2,9), CartesianIndex(2,5)),
-    moveFor(testInitial, 'B', CartesianIndex(2,9), CartesianIndex(1,4)),
-    moveFor(testInitial, 'B', CartesianIndex(2,9), CartesianIndex(1,2)),
+]
+@test potentialCorridorMoves(testInitial2, PLAN2, 'B', CartesianIndex(2,9), CartesianIndex(1,9)) == [
+    moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,8)),
+    moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,10)),
+    moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,11)),
+    moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,6)),
+    moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,4)),
+    moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,2)),
 ]
 
 
@@ -160,9 +187,9 @@ function iscomplete(state, plan)
 end
 
 function costToReorganise(initial, plan, precalculations=Dict{Array{Char,2}, Int}(), limit=typemax(Int))
-    if limit <= 0
+    #=if limit <= 0
         return typemax(Int)
-    end
+    end=#
     if haskey(precalculations, initial)
         return precalculations[initial]
     end

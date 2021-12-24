@@ -5,7 +5,9 @@ day23:
 - Date: 2021-12-23
 =#
 
-using AoC, Test, Memoize, StructEquality
+using AoC, Test, Memoize, StructEquality, DataStructures, Profile
+
+const Burrow = Array{Char,2}
 
 const PLAN1=Char[
 ' ' ' ' 'x' ' ' 'x' ' ' 'x' ' ' 'x' ' ' ' '
@@ -52,7 +54,7 @@ end
 
 function Base.show(io::IO, m::Array{Char, 2})
     for y in 1:size(m,1)
-        println(io)
+        y > 1 && print(io, "/")
         for x in 1:size(m,2)
             print(io, m[y,x])
         end
@@ -134,20 +136,19 @@ function potentialCorridorMoves(initial, plan, type, initialPosition, position):
         return more
     end
     append!(result, more)
-    sort!(result; by=m->m.cost)
     return result
 end
 @test potentialCorridorMoves(testInitial, PLAN2, 'B', CartesianIndex(2,9), CartesianIndex(1,9)) == [
     moveFor(testInitial, 'B', CartesianIndex(2,9), CartesianIndex(2,5)),
 ]
-@test potentialCorridorMoves(testInitial2, PLAN2, 'B', CartesianIndex(2,9), CartesianIndex(1,9)) == [
+@test sort(potentialCorridorMoves(testInitial2, PLAN2, 'B', CartesianIndex(2,9), CartesianIndex(1,9)); by=m->m.cost) == sort([
     moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,8)),
     moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,10)),
     moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,11)),
     moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,6)),
     moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,4)),
     moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,2)),
-]
+]; by=m->m.cost)
 
 
 function potentialMoves(initial, plan, I)::Array{Move}
@@ -186,30 +187,98 @@ function iscomplete(state, plan)
     return true
 end
 
-function costToReorganise(initial, plan, precalculations=Dict{Array{Char,2}, Int}(), limit=typemax(Int))
-    #=if limit <= 0
-        return typemax(Int)
-    end=#
-    if haskey(precalculations, initial)
-        return precalculations[initial]
+function addState!(stateCosts::SC, costStates::CS, state, cost) where SC<:AbstractDict{Burrow, Int} where CS<:AbstractDict{Int, Set{Burrow}}
+    if haskey(stateCosts, state); throw(ArgumentError("Cannot add " * string(state) * "/" * string(cost) * " to " * string(stateCosts) * " as it is already present")); end
+    stateCosts[state] = cost
+    statesWithThisCost = get!(()->Set{Burrow}(), costStates, cost)
+    push!(statesWithThisCost, state)
+end
+
+function popLastState!(stateCosts, costStates)
+    (cost, states) = last(costStates)
+    state = first(states)
+    removeState!(stateCosts, costStates, state)
+    return (state, cost)
+end
+
+function popFirstState!(stateCosts, costStates)
+    (cost, states) = first(costStates)
+    state = first(states)
+    removeState!(stateCosts, costStates, state)
+    return (state, cost)
+end
+
+function removeState!(stateCosts, costStates, state)
+    if !haskey(stateCosts, state); throw(ArgumentError("Cannot remove " * string(state) * " from " * string(stateCosts) * " as it is not present")); end
+    cost = pop!(stateCosts, state, nothing)
+    if !isnothing(cost)
+        statesWithCost = costStates[cost]
+        pop!(statesWithCost, state)
+        if isempty(statesWithCost)
+            pop!(costStates, cost)
+        end
     end
-    precalculations[initial] = typemax(Int)
+end
+
+function addOrReplaceState!(stateCosts, costStates, state, newCost)
+    if haskey(stateCosts, state)
+        removeState!(stateCosts, costStates, state)
+    end
+    addState!(stateCosts, costStates, state, newCost)
+end
+
+function costToReorganise(initial, plan)
+    stateCosts = Dict{Burrow, Int}()
+    costStates = SortedDict{Int, Set{Burrow}}()
+
+    newStateCosts = Dict{Burrow, Int}()
+    newCostStates = SortedDict{Int, Set{Burrow}}()
+
+    addState!(stateCosts, costStates, initial, 0)
+    addState!(newStateCosts, newCostStates, initial, 0)
 
     best = typemax(Int)
-    moves = potentialMoves(initial, plan)
-    for move in moves
-        if iscomplete(move.finalState, plan)
-            if move.cost < best
-                best = move.cost
-            end
+
+    pass = 0
+
+    while !isempty(newStateCosts)
+        if pass > 10000
+            @show length(newStateCosts), length(stateCosts)
+            pass = 0
+        end
+        pass += 1
+
+        (mostExpensiveState, mostExpensiveCost) = popFirstState!(newStateCosts, newCostStates)
+
+        if mostExpensiveCost >= best
+            # discard - already slower than the best
+        elseif get(stateCosts, mostExpensiveState, typemax(Int)) < mostExpensiveCost
+            # discard - already reached this state more quickly
+        elseif iscomplete(mostExpensiveState, plan)
+            @show :complete, mostExpensiveState, mostExpensiveCost
+            # this is the best cost for completion
+            best = mostExpensiveCost
         else
-            resultingCost = costToReorganise(move.finalState, plan, precalculations, best-move.cost)
-            if resultingCost !== nothing && resultingCost < best - move.cost
-                best = move.cost + resultingCost
+            moves = potentialMoves(mostExpensiveState, plan)
+
+            producedNewStates = false
+
+            for move in moves
+                newTotalCost = mostExpensiveCost + move.cost
+
+                if newTotalCost < best
+
+                    existingCost = get(stateCosts, move.finalState, typemax(Int))
+
+                    if newTotalCost < existingCost
+                        addOrReplaceState!(newStateCosts, newCostStates, move.finalState, newTotalCost)
+                        addOrReplaceState!(stateCosts, costStates, move.finalState, newTotalCost)
+                    end
+
+                end
             end
         end
     end
-    precalculations[initial] = best
     return best
 end
 
@@ -221,25 +290,28 @@ end
 '#' 'A' '#' 'B' '#'
 ]) == 46
 
+println("costToReorganise test complete")
+
 @test costToReorganise([
 ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
 '#' '#' 'B' '#' 'C' '#' 'B' '#' 'D' '#' '#'
 '#' '#' 'A' '#' 'D' '#' 'C' '#' 'A' '#' '#'
 ], PLAN1) == 12521
 
-@show @time costToReorganise([
+@show @time Profile.@profile costToReorganise([
 ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
 '#' '#' 'A' '#' 'C' '#' 'C' '#' 'D' '#' '#'
 '#' '#' 'B' '#' 'D' '#' 'A' '#' 'B' '#' '#'
 ], PLAN1)
+Profile.print()
 
-@test costToReorganise([
-' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
-'#' '#' 'B' '#' 'C' '#' 'B' '#' 'D' '#' '#'
-'#' '#' 'D' '#' 'C' '#' 'B' '#' 'A' '#' '#'
-'#' '#' 'D' '#' 'B' '#' 'A' '#' 'C' '#' '#'
-'#' '#' 'A' '#' 'D' '#' 'C' '#' 'A' '#' '#'
-], PLAN2) == 44169
+#@test costToReorganise([
+#' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+#'#' '#' 'B' '#' 'C' '#' 'B' '#' 'D' '#' '#'
+#'#' '#' 'D' '#' 'C' '#' 'B' '#' 'A' '#' '#'
+#'#' '#' 'D' '#' 'B' '#' 'A' '#' 'C' '#' '#'
+#'#' '#' 'A' '#' 'D' '#' 'C' '#' 'A' '#' '#'
+#], PLAN2) == 44169
 
 @show @time costToReorganise([
 ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '

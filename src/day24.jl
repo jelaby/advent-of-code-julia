@@ -59,9 +59,12 @@ abstract type Expression end
 
 struct InpExpression <: Expression
     n::Int
-    value::Expression
+    first::Int
+    stride::Int
+    last::Int
 end
-inpExpression(n, value::Expression) = InpExpression(n,value)
+inpExpression(n, first, stride, last) = InpExpression(n,first,stride,last)
+inpExpression(n, first, last) = inpExpression(n,first,1,last)
 
 struct AddExpression <: Expression
     l::Expression
@@ -70,17 +73,15 @@ end
 
 function addExpression(l::Expression,r::Expression)
     if fixedValue(l) == 0
+        @show :simplifiedAdd,r
         return r
     elseif fixedValue(r) == 0
+        @show :simplifiedAdd,l
         return l
     elseif hasFixedValue(l) && hasFixedValue(r)
-        return valueExpression(fixedValue(l)+fixedValue(r))
-    elseif l isa Range
-        return Range(addExpression(l.min,r), l.stride, addExpression(l.max, r))
-    elseif r isa Range
-        return Range(addExpression(l,r.min), r.stride, addExpression(l, r.max))
+        return @show valueExpression(fixedValue(l)+fixedValue(r))
     end
-    return AddExpression(l,r)
+    return simplify(AddExpression(l,r))
 end
 
 struct MulExpression <: Expression
@@ -89,16 +90,17 @@ struct MulExpression <: Expression
 end
 
 function mulExpression(l::Expression,r::Expression)
-    if fixedValue(l)==0 || fixedValue(r)==0
+    if fixedValue(l) == 0 || fixedValue(r) == 0
+        @show :simplifiedMul, 0
         return valueExpression(0)
-    elseif hasFixedValue(l) && hasFixedValue(r)
-        return valueExpression(fixedValue(l) * fixedValue(r))
-    elseif l isa Range
-        return Range(mulExpression(l.min,r), mulExpression(l.stride, r), mulExpression(l.max, r))
-    elseif r isa Range
-        return Range(mulExpression(l,r.min), mulExpression(l, r.stride), mulExpression(l, r.max))
+    elseif fixedValue(l) == 1
+        @show :simplifiedMul, r
+        return r
+    elseif fixedValue(r) == 1
+        @show :simplifiedMul, l
+        return l
     end
-    return MulExpression(l,r)
+    return simplify(MulExpression(l,r))
 end
 
 struct DivExpression <: Expression
@@ -108,11 +110,13 @@ end
 
 function divExpression(l::Expression,r::Expression)
     if fixedValue(r) == 1
+        @show :simplifiedDiv, l
         return l
-    elseif hasFixedValue(l) && hasFixedValue(r)
-        return valueExpression(fixedValue(l) ÷ fixedValue(r))
+    if fixedValue(l) == 0
+        @show :simplifiedDiv, 0
+        return valueExpression(0)
     end
-    return DivExpression(l,r)
+    return simplify(DivExpression(l,r))
 end
 
 struct ModExpression <: Expression
@@ -124,7 +128,14 @@ function modExpression(l::Expression,r::Expression)
     if hasFixedValue(l) && hasFixedValue(r)
         return valueExpression(fixedValue(l) % fixedValue(r))
     end
-    return ModExpression(l,r)
+    if hasFixedValue(r)
+        lv = values(l)
+        if !isnothing(lv) && all(v->v>=0 && v<=fixedValue(r), lv)
+            @show :noopModulo
+            return l
+        end
+    end
+    return simplify(ModExpression(l,r))
 end
 
 struct EqlExpression <: Expression
@@ -133,26 +144,7 @@ struct EqlExpression <: Expression
 end
 
 function eqlExpression(l::Expression,r::Expression)
-    if hasFixedValue(l) && hasFixedValue(r)
-        return valueExpression(fixedValue(l) == fixedValue(r))
-    elseif isFixedRange(l) && hasFixedValue(r)
-        answers=Set{Bool}()
-        for i in asRange(l)
-            push!(answers, i == fixedValue(r))
-        end
-        if length(answers) == 1
-            return valueExpression(first(answers))
-        end
-    elseif isFixedRange(r) && hasFixedValue(l)
-        answers=Set{Bool}()
-        for i in asRange(r)
-            push!(answers, i == fixedValue(l))
-        end
-        if length(answers) == 1
-            return valueExpression(first(answers))
-        end
-    end
-    return EqlExpression(l,r)
+    return simplify(EqlExpression(l,r))
 end
 
 struct ValueExpression <: Expression
@@ -164,16 +156,8 @@ function valueExpression(value)
 end
 valueExpression(value::AbstractString) = valueExpression(asInt(value))
 
-struct Range <: Expression
-    min::Expression
-    stride::Expression
-    max::Expression
-end
-Range(min::Int,stride::Int,max::Int) = Range(valueExpression(min), valueExpression(stride), valueExpression(max))
-Range(min,max) = Range(min,1,max)
-
 mutable struct Decompiler
-    inputs::Vector{Range}
+    inputs::Vector{InpExpression}
     nextInput::Int
     vars::Dict{Char, Expression}
 end
@@ -182,20 +166,18 @@ Decompiler(inputs) = Decompiler(inputs, 1, Dict('w'=>ValueExpression(0),'x'=>Val
 getDecompilerVarOrValue(alu, arg) = get(()->valueExpression(arg), alu.vars, asVar(arg))
 
 Base.show(io::IO, e::ValueExpression) = show(io, e.value)
-function Base.show(io::IO, e::Range)
-    print(io, '[')
-    print(io, e.min)
-    if !hasFixedValue(e.stride) || fixedValue(e.stride) != 1
-        print(io, ':')
-        print(io, e.stride)
-    end
-    print(io, ':')
-    print(io, e.max)
-    print(io, ']')
-end
 function Base.show(io::IO, e::InpExpression)
     print(io, '#')
     print(io, e.n)
+    #print(io, '[')
+    #print(io, e.first)
+    #if !hasFixedValue(e.stride) || fixedValue(e.stride) != 1
+    #    print(io, ':')
+    #    print(io, e.stride)
+    #end
+    #print(io, ':')
+    #print(io, e.last)
+    #print(io, ']')
 end
 function Base.show(io::IO, e::Expression)
     iscompound(e.l) && print(io, '(')
@@ -209,7 +191,6 @@ end
 
 iscompound(e) = true
 iscompound(e::ValueExpression) = false
-iscompound(e::Range) = false
 iscompound(e::InpExpression) = false
 
 operatorSymbol(::AddExpression) = '+'
@@ -218,37 +199,57 @@ operatorSymbol(::DivExpression) = '/'
 operatorSymbol(::ModExpression) = '%'
 operatorSymbol(::EqlExpression) = "=="
 
+operatorFor(::AddExpression) = (+)
+operatorFor(::MulExpression) = (*)
+operatorFor(::DivExpression) = (÷)
+operatorFor(::ModExpression) = (%)
+operatorFor(::EqlExpression) = (==)
+
+values(e::ValueExpression) = e.value
+values(e::InpExpression) = e.first:e.stride:e.last
+values(e::Expression) = values(e, operatorFor(e))
+function values(e::Expression, op)
+    l = values(e.l)
+    r = values(e.r)
+    if isnothing(l) || isnothing(r) || length(l) * length(r) > 1000
+        return nothing
+    end
+
+    return Set([op(l, r) for l in values(e.l), r in values(e.r)])
+end
+
+function simplify(e::Expression)
+    actualValues = values(e)
+    if isnothing(actualValues)
+        return e
+    end
+    firstValue = first(actualValues)
+    for value in actualValues
+        if value != firstValue
+            # not all the same
+            return e
+        end
+    end
+    # all the same
+    @show :simplified,e,firstValue
+    return valueExpression(firstValue)
+end
+
 fixedValue(::Any) = nothing
 fixedValue(v::ValueExpression) = v.value
-fixedValue(v::InpExpression) = fixedValue(v.value)
 
 hasFixedValue(::Any) = false
 hasFixedValue(::ValueExpression) = true
-hasFixedValue(v::InpExpression) = hasFixedValue(v.value)
 
-isRange(::Any) = false
-isRange(::Range) = true
-isRange(v::InpExpression) = isRange(v.value)
-
-isFixedRange(::Any) = false
-isFixedRange(r::Range) = hasFixedValue(r.min) && hasFixedValue(r.stride) && hasFixedValue(r.max)
-isFixedRange(v::InpExpression) = isFixedRange(v.value)
-
-asRange(r::Expression) = fixedValue(first(r)):fixedValue(stride(r)):fixedValue(last(r))
-
-Base.first(r::Range) = r.min
-Base.stride(r::Range) = r.stride
-Base.last(r::Range) = r.max
-
-Base.first(r::InpExpression) = first(r.value)
-Base.stride(r::InpExpression) = stride(r.value)
-Base.last(r::InpExpression) = last(r.value)
+Base.first(r::InpExpression) = r.first
+Base.stride(r::InpExpression) = r.stride
+Base.last(r::InpExpression) = r.last
 
 function decompile(lines, inputs)
     alu = Decompiler(inputs)
 
     instructions=Dict(
-        "inp" => (alu, args) -> begin alu.vars[asVar(args[1])] = inpExpression(alu.nextInput, alu.inputs[alu.nextInput]); alu.nextInput += 1; end,
+        "inp" => (alu, args) -> begin alu.vars[asVar(args[1])] = alu.inputs[alu.nextInput]; alu.nextInput += 1; end,
         "add" => (alu, args) -> alu.vars[asVar(args[1])] = addExpression(getVar(alu, args[1]), getDecompilerVarOrValue(alu, args[2])),
         "mul" => (alu, args) -> alu.vars[asVar(args[1])] = mulExpression(getVar(alu, args[1]), getDecompilerVarOrValue(alu, args[2])),
         "div" => (alu, args) -> alu.vars[asVar(args[1])] = divExpression(getVar(alu, args[1]), getDecompilerVarOrValue(alu, args[2])),
@@ -256,27 +257,32 @@ function decompile(lines, inputs)
         "eql" => (alu, args) -> alu.vars[asVar(args[1])] = eqlExpression(getVar(alu, args[1]), getDecompilerVarOrValue(alu, args[2])),
     )
 
+    println("Decompiling...")
     for line in lines
+        @show line
         parts = split(line, ' ')
 
         op = instructions[parts[1]]
 
         op(alu, parts[2:end])
     end
+    println("...decompilation complete")
 
     return alu
 end
 
 
 
-@test string(decompile(["inp x", "mul x -1"],[Range(1,9)]).vars['x']) == "#1*-1"
-@test string(decompile(["inp x", "mul x 0"],[Range(1,9)]).vars['x']) == "0"
-@test string(decompile(["inp x", "mul x 2"],[Range(1,9)]).vars['x']) == "#1*2"
-@test string(decompile(["inp x", "add x 0"],[Range(1,9)]).vars['x']) == "#1"
-@test string(decompile(["inp x", "add y x"],[Range(1,9)]).vars['y']) == "#1"
-@test string(decompile(["inp x", "add x 2"],[Range(1,9)]).vars['x']) == "#1+2"
-@test string(decompile(["inp x", "eql x 2"],[Range(1,9)]).vars['x']) == "#1==2"
-@test string(decompile(["inp x", "eql x 0"],[Range(1,9)]).vars['x']) == "0"
-@test string(decompile(["inp x", "eql x 10"],[Range(1,9)]).vars['x']) == "0"
+@test string(decompile(["inp x", "mul x -1"],[inpExpression(1,1,9)]).vars['x']) == "#1*-1"
+@test string(decompile(["inp x", "mul x 0"],[inpExpression(1,1,9)]).vars['x']) == "0"
+@test string(decompile(["inp x", "mul x 2"],[inpExpression(1,1,9)]).vars['x']) == "#1*2"
+@test string(decompile(["inp x", "add x 0"],[inpExpression(1,1,9)]).vars['x']) == "#1"
+@test string(decompile(["inp x", "add y x"],[inpExpression(1,1,9)]).vars['y']) == "#1"
+@test string(decompile(["inp x", "add x 2"],[inpExpression(1,1,9)]).vars['x']) == "#1+2"
+@test string(decompile(["inp x", "eql x 2"],[inpExpression(1,1,9)]).vars['x']) == "#1==2"
+@test string(decompile(["inp x", "eql x 0"],[inpExpression(1,1,9)]).vars['x']) == "0"
+@test string(decompile(["inp x", "eql x 10"],[inpExpression(1,1,9)]).vars['x']) == "0"
 
-@show string(decompile(lines(24), fill(Range(1,9),14)))
+println("Testing complete")
+
+@show decompile(lines(24), [inpExpression(i,1,9) for i in 1:14]).vars['z']

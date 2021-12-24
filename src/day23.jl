@@ -372,12 +372,11 @@ println("costToReorganise test complete")
 '#' '#' 'A' '#' 'D' '#' 'C' '#' 'A' '#' '#'
 ], PLAN1) == 12521
 
-@show @time Profile.@profile costToReorganise([
+@show @time costToReorganise([
 ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
 '#' '#' 'A' '#' 'C' '#' 'C' '#' 'D' '#' '#'
 '#' '#' 'B' '#' 'D' '#' 'A' '#' 'B' '#' '#'
 ], PLAN1)
-Profile.print()
 
 @test costToReorganise([
 ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '

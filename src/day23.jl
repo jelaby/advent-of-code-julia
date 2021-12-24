@@ -91,17 +91,35 @@ end
 '#' '#' 'B' '#' 'C' '#' 'D' '#' 'C' '#' '#'
 ], 30)
 
+function canMoveIntoRoom(initial, plan, type, x)
+    if plan[lastindex(initial, 1), x] != type
+        return false
+    end
+
+    for y in lastindex(initial,1):-1:2
+        if initial[y,x] == ' '
+            return y
+        elseif initial[y,x] != type
+            return false
+        end
+    end
+
+    return false
+end
+@test canMoveIntoRoom([' ' 'A';' ' '#';'B' '#'],['x' ' ';'A' '#';'A' '#'], 'A', 1) == false
+@test canMoveIntoRoom([' ' 'A';' ' '#';'A' '#'],['x' ' ';'A' '#';'A' '#'], 'A', 1) == 2
+@test canMoveIntoRoom([' ' 'A';' ' '#';' ' '#'],['x' ' ';'A' '#';'A' '#'], 'A', 1) == 3
+@test canMoveIntoRoom([' ' 'A';'A' '#';'A' '#'],['x' ' ';'A' '#';'A' '#'], 'A', 1) == false
+@test canMoveIntoRoom([' ' 'A';'B' '#';'B' '#'],['x' ' ';'A' '#';'A' '#'], 'A', 1) == false
+
 function potentialCorridorMoves(initial, plan, type, initialPosition, position, direction)
     P = position + direction
     while P[X]>=1 && P[X]<=size(initial, X)
         if plan[P] == ' ' && initial[P] == ' '
         elseif plan[P] == 'x'
-            if plan[end,P[X]] == type
-                for y in lastindex(initial,1):-1:2
-                    if initial[y,P[X]] == ' '
-                        return (Move[moveFor(initial, type, initialPosition, CartesianIndex(y,P[X]))], true)
-                    end
-                end
+            y = canMoveIntoRoom(initial, plan, type, P[X])
+            if y!==false
+                return (Move[moveFor(initial, type, initialPosition, CartesianIndex(y,P[X]))], true)
             end
         else
             #blocked by another amphipod
@@ -138,8 +156,20 @@ function potentialCorridorMoves(initial, plan, type, initialPosition, position):
     append!(result, more)
     return result
 end
-@test potentialCorridorMoves(testInitial, PLAN2, 'B', CartesianIndex(2,9), CartesianIndex(1,9)) == [
-    moveFor(testInitial, 'B', CartesianIndex(2,9), CartesianIndex(2,5)),
+@test potentialCorridorMoves([
+    'D' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+    '#' '#' 'A' '#' ' ' '#' 'C' '#' 'B' '#' '#'
+    '#' '#' 'A' '#' 'B' '#' 'C' '#' 'D' '#' '#'
+    '#' '#' 'A' '#' 'B' '#' 'C' '#' 'D' '#' '#'
+    '#' '#' 'A' '#' 'B' '#' 'C' '#' 'D' '#' '#'
+], PLAN2, 'B', CartesianIndex(2,9), CartesianIndex(1,9)) == [
+    moveFor([
+    'D' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' ' '
+    '#' '#' 'A' '#' ' ' '#' 'C' '#' 'B' '#' '#'
+    '#' '#' 'A' '#' 'B' '#' 'C' '#' 'D' '#' '#'
+    '#' '#' 'A' '#' 'B' '#' 'C' '#' 'D' '#' '#'
+    '#' '#' 'A' '#' 'B' '#' 'C' '#' 'D' '#' '#'
+    ], 'B', CartesianIndex(2,9), CartesianIndex(2,5)),
 ]
 @test sort(potentialCorridorMoves(testInitial2, PLAN2, 'B', CartesianIndex(2,9), CartesianIndex(1,9)); by=m->m.cost) == sort([
     moveFor(testInitial2, 'B', CartesianIndex(2,9), CartesianIndex(1,8)),

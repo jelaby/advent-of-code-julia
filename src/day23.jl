@@ -143,6 +143,11 @@ function potentialCorridorMoves(initial, plan, type, initialPosition, position, 
         P += direction
     end
 
+    if initialPosition[Y] == CORRIDOR_Y_POSITION
+        # Cannot move once in the corridor
+        return (Move[], false)
+    end
+
     result = Move[]
     P = position + direction
     while P[X]>=1 && P[X]<=size(initial, X)

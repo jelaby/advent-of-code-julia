@@ -53,12 +53,27 @@ testInitial2 = [
 end
 
 function Base.show(io::IO, m::Array{Char, 2})
+
+    print(io, '┌')
+    for x in 1:size(m,2)
+        print(io, '─')
+    end
+    println(io, '┐')
+
     for y in 1:size(m,1)
-        y > 1 && print(io, "/")
+        print(io, '│')
         for x in 1:size(m,2)
             print(io, m[y,x])
         end
+        println(io, '│')
     end
+
+
+    print(io, '└')
+    for x in 1:size(m,2)
+        print(io, '─')
+    end
+    print(io, '┘')
 end
 
 isamphipod(c::Char) = c=='A' || c=='B' || c=='C' || c=='D'

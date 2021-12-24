@@ -305,20 +305,14 @@ function costToReorganise(initial, plan)
     newStateCosts = Dict{Burrow, Int}()
     newCostStates = SortedDict{Int, Set{Burrow}}()
 
+    sourceStates = Dict{Burrow, Burrow}()
+
     addState!(stateCosts, costStates, initial, 0)
     addState!(newStateCosts, newCostStates, initial, 0)
 
     best = typemax(Int)
 
-    pass = 0
-
     while !isempty(newStateCosts)
-        if pass > 10000
-            @show length(newStateCosts), length(stateCosts)
-            pass = 0
-        end
-        pass += 1
-
         (mostExpensiveState, mostExpensiveCost) = popFirstState!(newStateCosts, newCostStates)
 
         if mostExpensiveCost >= best
@@ -329,6 +323,14 @@ function costToReorganise(initial, plan)
             @show :complete, mostExpensiveState, mostExpensiveCost
             # this is the best cost for completion
             best = mostExpensiveCost
+
+            showState = mostExpensiveState
+            while showState != initial
+                println(string(showState) * " " * string(stateCosts[showState]))
+                showState = sourceStates[showState]
+            end
+            println(string(showState))
+
         else
             moves = potentialMoves(mostExpensiveState, plan)
 
@@ -344,6 +346,7 @@ function costToReorganise(initial, plan)
                     if newTotalCost < existingCost
                         addOrReplaceState!(newStateCosts, newCostStates, move.finalState, newTotalCost)
                         addOrReplaceState!(stateCosts, costStates, move.finalState, newTotalCost)
+                        sourceStates[move.finalState] = mostExpensiveState
                     end
 
                 end

@@ -167,6 +167,47 @@ function potentialMoves(initial, plan, I)::Array{Move}
         return potentialCorridorMoves(initial, plan, type, I, I)
     end
 end
+@test potentialMoves([
+' ' ' ' ' ' ' ' ' '
+'#' 'B' '#' 'A' '#'
+'#' 'B' '#' 'A' '#'
+'#' 'B' '#' 'A' '#'
+'#' 'B' '#' 'A' '#'
+],[
+' ' 'x' ' ' 'x' ' '
+'#' 'A' '#' 'B' '#'
+'#' 'A' '#' 'B' '#'
+'#' 'A' '#' 'B' '#'
+'#' 'A' '#' 'B' '#'
+],CartesianIndex(3,2)) == Move[]
+
+@test length(potentialMoves([
+'B' ' ' ' ' ' ' ' '
+'#' ' ' '#' 'A' '#'
+'#' 'B' '#' 'A' '#'
+'#' 'B' '#' 'A' '#'
+'#' 'B' '#' 'A' '#'
+],[
+' ' 'x' ' ' 'x' ' '
+'#' 'A' '#' 'B' '#'
+'#' 'A' '#' 'B' '#'
+'#' 'A' '#' 'B' '#'
+'#' 'A' '#' 'B' '#'
+],CartesianIndex(3,2))) == 2
+
+@test length(potentialMoves([
+' ' ' ' 'B' ' ' ' '
+'#' ' ' '#' 'A' '#'
+'#' 'B' '#' 'A' '#'
+'#' 'B' '#' 'A' '#'
+'#' 'B' '#' 'A' '#'
+],[
+' ' 'x' ' ' 'x' ' '
+'#' 'A' '#' 'B' '#'
+'#' 'A' '#' 'B' '#'
+'#' 'A' '#' 'B' '#'
+'#' 'A' '#' 'B' '#'
+],CartesianIndex(3,2))) == 1
 
 function potentialMoves(initial, plan)
     result=Move[]

@@ -1,0 +1,85 @@
+#=
+day24b:
+- Julia version: 1.7.0
+- Author: Paul.Mealor
+- Date: 2021-12-25
+=#
+
+using AoC, Test
+import Dates
+
+
+function convertToFunctionGenerator(name,lines)
+    inputNumber = 1
+    body = [
+        "function "*name*"(n)"
+        "w::BigInt=0"
+        "x::BigInt=0"
+        "y::BigInt=0"
+        "z::BigInt=0"
+    ]
+    for line in lines
+        (op, arg...) = split(line, ' ')
+
+        if op == "inp"
+            push!(body, arg[1] * " = n[" * string(inputNumber) * "]")
+            inputNumber = inputNumber + 1
+        elseif op == "add"
+            push!(body, arg[1] * " += " * arg[2])
+        elseif op == "mul"
+            push!(body, arg[1] * " *= " * arg[2])
+        elseif op == "div"
+            push!(body, arg[1] * " ÷= " * arg[2])
+        elseif op == "mod"
+            push!(body, arg[1] * " %= " * arg[2])
+        elseif op == "eql"
+            push!(body, arg[1] * " = (" * arg[1] * " == " * arg[2] * ")")
+        else
+            throw(ArgumentError("Unrecognised command "*line))
+        end
+
+    end
+
+    push!(body, "return (w,x,y,z)")
+    push!(body, "end")
+
+    return Meta.parse(join(body, "\n"))
+
+end
+
+eval(convertToFunctionGenerator("test1", exampleLines(24,1)))
+@test test1(1) == (0,0,0,1)
+@test test1(2) == (0,0,1,0)
+@test test1(4) == (0,1,0,0)
+@test test1(8) == (1,0,0,0)
+@test test1(15) == (1,1,1,1)
+@test test1(5) == (0,1,0,1)
+
+@show gen = convertToFunctionGenerator("validate", lines(24))
+eval(gen)
+
+@test validate([parse(Int, c) for c in "13579246899999"])[4] == 3144333912
+
+args = fill(9,14)
+
+startTime = Dates.now()
+
+while true
+    if validate(args)[4] == 0
+        @show *(string.(args)...)
+        break
+    end
+    args[14] = mod1(args[14] - 1,9)
+    if args[14] == 9
+        for arg in 13:-1:1
+            args[arg] = mod1(args[arg] - 1,9)
+            if args[arg] < 9
+                break
+            elseif arg == 9
+
+                @show Dates.now() + ((Dates.now() - startTime) * 1_000_000_000)
+
+            end
+        end
+    end
+end

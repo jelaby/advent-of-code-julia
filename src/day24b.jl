@@ -6,7 +6,7 @@ day24b:
 =#
 
 using AoC, Test
-import Dates
+using Dates: now
 
 
 function convertToFunctionGenerator(name,lines)
@@ -59,27 +59,36 @@ eval(convertToFunctionGenerator("test1", exampleLines(24,1)))
 eval(gen)
 
 @test validate([parse(Int, c) for c in "13579246899999"])[4] == 3144333912
+@test validate([(13579246899999 ÷ (10^d)) % 10 for d in 13:-1:0])[4] == 3144333912
 
-args = fill(9,14)
+const FOURTEEN_NINES = 99_999_999_999_999
 
-startTime = Dates.now()
+function findBestKey()
+    startTime = now()
 
-while true
-    if validate(args)[4] == 0
-        @show *(string.(args)...)
-        break
-    end
-    args[14] = mod1(args[14] - 1,9)
-    if args[14] == 9
-        for arg in 13:-1:1
-            args[arg] = mod1(args[arg] - 1,9)
-            if args[arg] < 9
-                break
-            elseif arg == 9
+    n = FOURTEEN_NINES
 
-                @show Dates.now() + ((Dates.now() - startTime) * 1_000_000_000)
-
+    while true
+        if validate([(n ÷ (10^d)) % 9 for d in 13:-1:0])[4] == 0
+            return n
+        end
+        n -= 1
+        if n % 10 == 0
+            n -= 1
+            divisor = 10
+            while (n ÷ divisor) % 10 == 0
+                n -= divisor
+                divisor *= 10
             end
+        end
+        if n % 1_000_000 == 111_111
+            t = now()
+            elapsed = t - startTime
+            estimate = t + elapsed * FOURTEEN_NINES ÷ (FOURTEEN_NINES - n)
+            percent = (FOURTEEN_NINES - n) ÷ (FOURTEEN_NINES ÷ 100)
+            println(string(t), ' ', string(elapsed), ' ', string(estimate), ' ', string(percent), '%')
         end
     end
 end
+
+@show @time findBestKey()

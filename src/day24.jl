@@ -52,7 +52,7 @@ end
 @test execute(exampleLines(24,1), ["15"]).vars == Dict('w'=>1, 'x'=>1, 'y'=>1, 'z'=>1)
 @test execute(exampleLines(24,1), ["5"]).vars == Dict('w'=>0, 'x'=>1, 'y'=>0, 'z'=>1)
 
-@test execute(lines(24), [string(c) for c in "13579246899999"]).vars['z'] != 0
+@test execute(lines(24), [string(c) for c in "13579246899999"]).vars['z'] == 3144333912
 @test execute(lines(24), [string(c) for c in "54765856433456"]).vars['z'] != 0
 
 abstract type Expression end
@@ -323,6 +323,8 @@ end
 @test string(decompile(["inp x", "eql x 2"],[inpExpression(1,1,9)]).vars['x']) == "#1==2"
 @test string(decompile(["inp x", "eql x 0"],[inpExpression(1,1,9)]).vars['x']) == "0"
 @test string(decompile(["inp x", "eql x 10"],[inpExpression(1,1,9)]).vars['x']) == "0"
+@test string(decompile(["inp x", "add x 2", "add x 3"],[inpExpression(1,1,9)]).vars['x']) ∈ ["#1+5","5+#1"]
+@test string(decompile(["inp z", "add y 2", "add x y", "add x z", "add x y"],[inpExpression(1,1,9)]).vars['x']) ∈ ["#1+4","4+#1"]
 
 println("Testing complete")
 

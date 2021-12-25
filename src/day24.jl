@@ -87,7 +87,9 @@ end
 struct MulExpression <: Expression
     l::Expression
     r::Expression
+    factors::Set{Int}
 end
+MulExpression(l,r,factors::Union{Nothing,Int}...) = MulExpression(l,r,Set{Int}(filter(x->!isnothing(x), factors)))
 
 function mulExpression(l::Expression,r::Expression)
     if fixedValue(l) == 0 || fixedValue(r) == 0
@@ -100,7 +102,7 @@ function mulExpression(l::Expression,r::Expression)
         @show :simplifiedMul, l
         return l
     end
-    return simplify(MulExpression(l,r))
+    return simplify(MulExpression(l,r,fixedValue(l),fixedValue(r)))
 end
 
 struct DivExpression <: Expression
@@ -112,7 +114,7 @@ function divExpression(l::Expression,r::Expression)
     if fixedValue(r) == 1
         @show :simplifiedDiv, l
         return l
-    if fixedValue(l) == 0
+    elseif fixedValue(l) == 0
         @show :simplifiedDiv, 0
         return valueExpression(0)
     end
@@ -129,13 +131,44 @@ function modExpression(l::Expression,r::Expression)
         return valueExpression(fixedValue(l) % fixedValue(r))
     end
     if hasFixedValue(r)
+        if fixedValue(r) ∈ factors(l)
+            @show :simplifyModExpression,l,r
+            l = valueExpression(0)
+        else
+            l = simplifyModulo(l, fixedValue(r))
+        end
+
         lv = values(l)
         if !isnothing(lv) && all(v->v>=0 && v<=fixedValue(r), lv)
-            @show :noopModulo
+            @show :noopModulo, l, lv, fixedValue(r)
             return l
         end
     end
+
     return simplify(ModExpression(l,r))
+end
+
+simplifyModulo(e::Expression, divisor) = e
+function simplifyModulo(e::MulExpression, divisor)
+    if divisor ∈ factors(e)
+        return valExpression(0)
+    end
+    return e
+end
+function simplifyModulo(e::AddExpression, divisor)
+    l = e.l
+    if divisor ∈ factors(l)
+        l = valueExpression(0)
+    end
+    r = e.r
+    if divisor ∈ factors(r)
+        r = valueExpression(0)
+    end
+    if l !== e.l || r !== e.r
+        @show :simplifyModuleAdd, l, r
+        return addExpression(l,r)
+    end
+    return e
 end
 
 struct EqlExpression <: Expression
@@ -212,11 +245,19 @@ function values(e::Expression, op)
     l = values(e.l)
     r = values(e.r)
     if isnothing(l) || isnothing(r) || length(l) * length(r) > 1000
-        return nothing
+        return fallbackValues(e)
     end
 
     return Set([op(l, r) for l in values(e.l), r in values(e.r)])
 end
+
+fallbackValues(::Expression) = nothing
+fallbackValues(::EqlExpression) = Set([0,1])
+fallbackValues(e::ModExpression) = hasFixedValue(e.r) ? Set(0:fixedValue(e.r)-1) : nothing
+
+# known factors
+factors(e::MulExpression) = e.factors
+factors(e::Expression) = Set{Int}()
 
 function simplify(e::Expression)
     actualValues = values(e)

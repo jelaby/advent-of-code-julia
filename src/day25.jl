@@ -42,14 +42,13 @@ end
 @test bound(zeros(3,2), CartesianIndex(3,1)) == CartesianIndex(3,1)
 @test bound(zeros(3,2), CartesianIndex(4,1)) == CartesianIndex(1,1)
 
-function tryMove!(seafloor, newSeafloor, newRCandidates, newDCandidates, type, position, direction)
+function tryMove!(seafloor, newSeafloor, newRCandidates, newDCandidates, newTypeCandidates, type, position, direction)
     if seafloor[position] == type
         newPosition = bound(seafloor, position+direction)
         if seafloor[newPosition] == '.'
             newSeafloor[newPosition] = type
             newSeafloor[position] = '.'
-            push!(newRCandidates, newPosition)
-            push!(newDCandidates, newPosition)
+            push!(newTypeCandidates, newPosition)
             push!(newRCandidates, bound(seafloor, position+LEFT))
             push!(newDCandidates, bound(seafloor, position+UP))
         end
@@ -62,12 +61,12 @@ function step(seafloor, rcandidates, dcandidates)
     newRCandidates = CartesianIndex[]
     newDCandidates = CartesianIndex[]
     for r in rcandidates
-        tryMove!(seafloor, newSeafloor, newRCandidates, newDCandidates, '>', r, RIGHT)
+        tryMove!(seafloor, newSeafloor, newRCandidates, newDCandidates, newRCandidates, '>', r, RIGHT)
     end
     seafloor = newSeafloor
     newSeafloor = copy(seafloor)
     for d in union(dcandidates,newDCandidates)
-        tryMove!(seafloor, newSeafloor, newRCandidates, newDCandidates, 'v', d, DOWN)
+        tryMove!(seafloor, newSeafloor, newRCandidates, newDCandidates, newDCandidates, 'v', d, DOWN)
     end
     return (newSeafloor, newRCandidates, newDCandidates)
 end

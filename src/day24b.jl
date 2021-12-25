@@ -13,10 +13,10 @@ function convertToFunctionGenerator(name,lines)
     inputNumber = 1
     body = [
         "function "*name*"(n)"
-        "w::BigInt=0"
-        "x::BigInt=0"
-        "y::BigInt=0"
-        "z::BigInt=0"
+        "w::Int=0"
+        "x::Int=0"
+        "y::Int=0"
+        "z::Int=0"
     ]
     for line in lines
         (op, arg...) = split(line, ' ')
@@ -62,6 +62,17 @@ eval(gen)
 @test validate([(13579246899999 ÷ (10^d)) % 10 for d in 13:-1:0])[4] == 3144333912
 
 const FOURTEEN_NINES = 99_999_999_999_999
+
+#=for i = 11_111_111_111_111:FOURTEEN_NINES
+    println(i, ' ', validate([(i ÷ (10^d)) % 10 for d in 13:-1:0])[4])
+end=#
+
+for d in 0:13
+    for n in 10^d:10^d:9*10^d
+        println(n, ' ', validate([(n ÷ (10^d)) % 10 for d in 13:-1:0])[4])
+    end
+end
+
 
 function findBestKey()
     startTime = now()

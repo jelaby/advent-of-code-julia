@@ -5,7 +5,7 @@ day24:
 - Date: 2021-12-24
 =#
 
-using AoC, Test
+using AoC, Test, Memoize
 
 
 
@@ -276,13 +276,13 @@ operatorFor(::DivExpression) = (÷)
 operatorFor(::ModExpression) = (%)
 operatorFor(::EqlExpression) = (l,r) -> l == r ? 1 : 0
 
-values(e::ValueExpression) = [e.value]
-values(e::InpExpression) = e.first:e.stride:e.last
-values(e::Expression) = values(e, operatorFor(e))
+@memoize values(e::ValueExpression) = [e.value]
+@memoize values(e::InpExpression) = e.first:e.stride:e.last
+@memoize values(e::Expression) = values(e, operatorFor(e))
 function values(e::Expression, op)
     l = values(e.l)
     r = values(e.r)
-    if isnothing(l) || isnothing(r) || length(l) * length(r) > 1000
+    if isnothing(l) || isnothing(r)
         return fallbackValues(e)
     end
 

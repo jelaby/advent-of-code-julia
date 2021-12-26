@@ -73,14 +73,33 @@ end
 
 function addExpression(l::Expression,r::Expression)
     if fixedValue(l) == 0
-        @show :simplifiedAdd,r
+        @show :simplifiedAddZero
         return r
     elseif fixedValue(r) == 0
-        @show :simplifiedAdd,l
+        @show :simplifiedAddZero
         return l
     elseif hasFixedValue(l) && hasFixedValue(r)
         return @show valueExpression(fixedValue(l)+fixedValue(r))
     end
+    if hasFixedValue(l) && r isa AddExpression
+        if hasFixedValue(r.l)
+            @show :simplifiedNestedAdd
+            return addExpression(valueExpression(fixedValue(l)+fixedValue(r.l)), r.r)
+        elseif hasFixedValue(r.r)
+            @show :simplifiedNestedAdd
+            return addExpression(valueExpression(fixedValue(l)+fixedValue(r.r)), r.l)
+        end
+    end
+    if hasFixedValue(r) && l isa AddExpression
+        if hasFixedValue(l.l)
+            @show :simplifiedNestedAdd
+            return addExpression(valueExpression(fixedValue(r)+fixedValue(l.l)), l.r)
+        elseif hasFixedValue(l.r)
+            @show :simplifiedNestedAdd
+            return addExpression(valueExpression(fixedValue(r)+fixedValue(l.r)), l.l)
+        end
+    end
+
     return simplify(AddExpression(l,r))
 end
 

@@ -196,6 +196,24 @@ struct EqlExpression <: Expression
 end
 
 function eqlExpression(l::Expression,r::Expression)
+    if l isa InpExpression
+        vv = values(r)
+        if !isnothing(vv) && all(v->v < l.first || v > l.last, vv)
+            @show :simplifiedEql,l.first,l.last,vv
+            return valueExpression(0)
+        end
+    end
+    if r isa InpExpression
+        vv = values(l)
+        if !isnothing(vv) && all(v->v < r.first || v > r.last, vv)
+            @show :simplifiedEql,r.first,r.last,vv
+            return valueExpression(0)
+        end
+    end
+    if hasFixedValue(l) && hasFixedValue(r) && fixedValue(l) == fixedValue(r)
+        return valueExpression(l == r ? 1 : 0)
+    end
+
     return simplify(EqlExpression(l,r))
 end
 
@@ -257,7 +275,7 @@ operatorFor(::DivExpression) = (÷)
 operatorFor(::ModExpression) = (%)
 operatorFor(::EqlExpression) = (l,r) -> l == r ? 1 : 0
 
-values(e::ValueExpression) = e.value
+values(e::ValueExpression) = [e.value]
 values(e::InpExpression) = e.first:e.stride:e.last
 values(e::Expression) = values(e, operatorFor(e))
 function values(e::Expression, op)
@@ -276,6 +294,7 @@ fallbackValues(e::ModExpression) = hasFixedValue(e.r) ? Set(0:fixedValue(e.r)-1)
 
 # known factors
 factors(e::MulExpression) = e.factors
+factors(e::ValueExpression) = Set{Int}(e.value)
 factors(e::Expression) = Set{Int}()
 
 function simplify(e::Expression)
@@ -333,17 +352,20 @@ end
 
 
 
-@test string(decompile(["inp x", "mul x -1"],[inpExpression(1,1,9)]).vars['x']) == "#1*-1"
-@test string(decompile(["inp x", "mul x 0"],[inpExpression(1,1,9)]).vars['x']) == "0"
-@test string(decompile(["inp x", "mul x 2"],[inpExpression(1,1,9)]).vars['x']) == "#1*2"
-@test string(decompile(["inp x", "add x 0"],[inpExpression(1,1,9)]).vars['x']) == "#1"
-@test string(decompile(["inp x", "add y x"],[inpExpression(1,1,9)]).vars['y']) == "#1"
-@test string(decompile(["inp x", "add x 2"],[inpExpression(1,1,9)]).vars['x']) == "#1+2"
-@test string(decompile(["inp x", "eql x 2"],[inpExpression(1,1,9)]).vars['x']) == "#1==2"
-@test string(decompile(["inp x", "eql x 0"],[inpExpression(1,1,9)]).vars['x']) == "0"
-@test string(decompile(["inp x", "eql x 10"],[inpExpression(1,1,9)]).vars['x']) == "0"
-@test string(decompile(["inp x", "add x 2", "add x 3"],[inpExpression(1,1,9)]).vars['x']) ∈ ["#1+5","5+#1"]
-@test string(decompile(["inp z", "add y 2", "add x y", "add x z", "add x y"],[inpExpression(1,1,9)]).vars['x']) ∈ ["#1+4","4+#1"]
+const fourteenInps=[inpExpression(n,1,9) for n in 1:14]
+@test string(decompile(["inp x", "mul x -1"],fourteenInps).vars['x']) == "#1*-1"
+@test string(decompile(["inp x", "mul x 0"],fourteenInps).vars['x']) == "0"
+@test string(decompile(["inp x", "mul x 2"],fourteenInps).vars['x']) == "#1*2"
+@test string(decompile(["inp x", "add x 0"],fourteenInps).vars['x']) == "#1"
+@test string(decompile(["inp x", "add y x"],fourteenInps).vars['y']) == "#1"
+@test string(decompile(["inp x", "add x 2"],fourteenInps).vars['x']) == "#1+2"
+@test string(decompile(["inp x", "eql x 2"],fourteenInps).vars['x']) == "#1==2"
+@test string(decompile(["inp x", "eql x 0"],fourteenInps).vars['x']) == "0"
+@test string(decompile(["inp x", "eql x 10"],fourteenInps).vars['x']) == "0"
+@test string(decompile(["inp x", "add x 2", "add x 3"],fourteenInps).vars['x']) ∈ ["#1+5","5+#1"]
+@test string(decompile(["inp z", "add y 2", "add x y", "add x z", "add x y"],fourteenInps).vars['x']) ∈ ["#1+4","4+#1"]
+@test string(decompile(["inp x", "add x 2", "inp y", "eql x y"],fourteenInps).vars['x']) == "(#1+2)==#2"
+@test string(decompile(["inp x", "add x 12", "inp y", "eql x y"],fourteenInps).vars['x']) == "0"
 
 println("Testing complete")
 

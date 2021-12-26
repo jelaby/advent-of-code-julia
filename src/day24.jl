@@ -237,8 +237,9 @@ getDecompilerVarOrValue(alu, arg) = get(()->valueExpression(arg), alu.vars, asVa
 
 Base.show(io::IO, e::ValueExpression) = show(io, e.value)
 function Base.show(io::IO, e::InpExpression)
-    print(io, '#')
+    print(io, "d[")
     print(io, e.n)
+    print(io, ']')
     #print(io, '[')
     #print(io, e.first)
     #if !hasFixedValue(e.stride) || fixedValue(e.stride) != 1
@@ -265,7 +266,7 @@ iscompound(e::InpExpression) = false
 
 operatorSymbol(::AddExpression) = '+'
 operatorSymbol(::MulExpression) = '*'
-operatorSymbol(::DivExpression) = '/'
+operatorSymbol(::DivExpression) = '÷'
 operatorSymbol(::ModExpression) = '%'
 operatorSymbol(::EqlExpression) = "=="
 
@@ -353,18 +354,18 @@ end
 
 
 const fourteenInps=[inpExpression(n,1,9) for n in 1:14]
-@test string(decompile(["inp x", "mul x -1"],fourteenInps).vars['x']) == "#1*-1"
+@test string(decompile(["inp x", "mul x -1"],fourteenInps).vars['x']) == "d[1]*-1"
 @test string(decompile(["inp x", "mul x 0"],fourteenInps).vars['x']) == "0"
-@test string(decompile(["inp x", "mul x 2"],fourteenInps).vars['x']) == "#1*2"
-@test string(decompile(["inp x", "add x 0"],fourteenInps).vars['x']) == "#1"
-@test string(decompile(["inp x", "add y x"],fourteenInps).vars['y']) == "#1"
-@test string(decompile(["inp x", "add x 2"],fourteenInps).vars['x']) == "#1+2"
-@test string(decompile(["inp x", "eql x 2"],fourteenInps).vars['x']) == "#1==2"
+@test string(decompile(["inp x", "mul x 2"],fourteenInps).vars['x']) == "d[1]*2"
+@test string(decompile(["inp x", "add x 0"],fourteenInps).vars['x']) == "d[1]"
+@test string(decompile(["inp x", "add y x"],fourteenInps).vars['y']) == "d[1]"
+@test string(decompile(["inp x", "add x 2"],fourteenInps).vars['x']) == "d[1]+2"
+@test string(decompile(["inp x", "eql x 2"],fourteenInps).vars['x']) == "d[1]==2"
 @test string(decompile(["inp x", "eql x 0"],fourteenInps).vars['x']) == "0"
 @test string(decompile(["inp x", "eql x 10"],fourteenInps).vars['x']) == "0"
-@test string(decompile(["inp x", "add x 2", "add x 3"],fourteenInps).vars['x']) ∈ ["#1+5","5+#1"]
-@test string(decompile(["inp z", "add y 2", "add x y", "add x z", "add x y"],fourteenInps).vars['x']) ∈ ["#1+4","4+#1"]
-@test string(decompile(["inp x", "add x 2", "inp y", "eql x y"],fourteenInps).vars['x']) == "(#1+2)==#2"
+@test string(decompile(["inp x", "add x 2", "add x 3"],fourteenInps).vars['x']) ∈ ["d[1]+5","5+d[1]"]
+@test string(decompile(["inp z", "add y 2", "add x y", "add x z", "add x y"],fourteenInps).vars['x']) ∈ ["d[1]+4","4+d[1]"]
+@test string(decompile(["inp x", "add x 2", "inp y", "eql x y"],fourteenInps).vars['x']) == "(d[1]+2)==d[2]"
 @test string(decompile(["inp x", "add x 12", "inp y", "eql x y"],fourteenInps).vars['x']) == "0"
 
 println("Testing complete")

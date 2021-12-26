@@ -182,29 +182,27 @@ const processInpB=[
 @show searchForZ((args...)->args, processInp[14], 0)
 
 function searchForInputs(targetZ=0, digit=14, inputs=Int[])
-    if digit==0
-    end
-
     return searchForZ(processInp[digit],targetZ) do input,z
         if digit == 1
-            inputs = [[input];inputs]
-            if validate(inputs)[4] == 0
-                @show :result,inputs
+            nextInputs = [[input];inputs]
+            if validate(nextInputs)[4] == 0
+                @show :result,nextInputs
             else
-                @show :rejected,inputs
+                @show :rejected,nextInputs
             end
         else
             n = 1
-            inputs = [[input];inputs]
+            nextInputs = [[input];inputs]
             nextZ = z
             w=0;x=0;y=0
             for d in digit:14
-                (w,x,y,nextZ) = processInp[d](inputs[n], w=w,x=x,y=y,z=nextZ)
+                (w,x,y,nextZ) = processInp[d]([nextInputs[n]], w=w,x=x,y=y,z=nextZ)
+                n=n+1
             end
             if nextZ == 0
-                @show :continuing, digit,input,z,nextZ
-                searchForInputs(z, digit-1, inputs)
+                searchForInputs(z, digit-1, nextInputs)
             else
+                @show :rejected, digit,nextInputs,z,nextZ
                 return nothing
             end
         end

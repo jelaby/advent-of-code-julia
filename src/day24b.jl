@@ -111,7 +111,7 @@ generateAluFunction("processInp14b", lines(24)[235:end])
 
 #const ARG_RANGES = sort(-20:20; by=abs)
 const ARG_RANGES = [0]
-const Z_RANGES = sort(-100000:100000; by=abs)
+const Z_RANGES = sort(0:100000; by=abs)
 
 function searchForWXYZ(onSuccess, f,targetZ,inputs)
 
@@ -196,8 +196,8 @@ function searchForInputs(targetZ=0, digit=14, inputs=Int[], allResults=Int[])
             n=n+1
         end
         if digit == 1
-            println()
             if validate(nextInputs)[4] == 0
+                println()
                 @show :results,push!(allResults, reduce((acc,val) -> acc * 10 + val, nextInputs))
             end
         elseif nextZ == 0

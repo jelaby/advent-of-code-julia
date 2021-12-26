@@ -58,20 +58,41 @@ generateAluFunction("validate", lines(24))
 
 const FOURTEEN_NINES = 99_999_999_999_999
 
-generateAluFunction("processInp1", lines(24)[1:18])
-generateAluFunction("processInp2", lines(24)[19:36])
-generateAluFunction("processInp3", lines(24)[37:54])
-generateAluFunction("processInp4", lines(24)[54:72])
-generateAluFunction("processInp5", lines(24)[73:90])
-generateAluFunction("processInp6", lines(24)[91:108])
-generateAluFunction("processInp7", lines(24)[109:126])
-generateAluFunction("processInp8", lines(24)[127:144])
-generateAluFunction("processInp9", lines(24)[145:162])
-generateAluFunction("processInp10", lines(24)[163:180])
-generateAluFunction("processInp11", lines(24)[181:198])
-generateAluFunction("processInp12", lines(24)[199:216])
-generateAluFunction("processInp13", lines(24)[217:234])
-generateAluFunction("processInp14", lines(24)[235:end])
+inputLines=Int[]
+ll = lines(24)
+startLine = 1
+parts=Vector{String}[]
+for i in eachindex(ll)
+    global startLine
+    if startswith(ll[i], "inp")
+        push!(inputLines, i)
+        if i!=startLine
+            push!(parts, ll[startLine:i-1])
+        end
+        startLine=i
+    end
+end
+push!(parts, ll[startLine:end])
+
+@test sum(length.(parts)) == length(ll)
+@test vcat(parts...) == ll
+@test [startswith(part[1], "inp") for part in parts] == fill(true, length(parts))
+@test [count(startswith.(part, "inp")) for part in parts] == fill(1, length(parts))
+
+generateAluFunction("processInp1", parts[1])
+generateAluFunction("processInp2", parts[2])
+generateAluFunction("processInp3", parts[3])
+generateAluFunction("processInp4", parts[4])
+generateAluFunction("processInp5", parts[5])
+generateAluFunction("processInp6", parts[6])
+generateAluFunction("processInp7", parts[7])
+generateAluFunction("processInp8", parts[8])
+generateAluFunction("processInp9", parts[9])
+generateAluFunction("processInp10", parts[10])
+generateAluFunction("processInp11", parts[11])
+generateAluFunction("processInp12", parts[12])
+generateAluFunction("processInp13", parts[13])
+generateAluFunction("processInp14", parts[14])
 
 generateAluFunction("processInp1b", lines(24)[1:end])
 generateAluFunction("processInp2b", lines(24)[19:end])
@@ -88,40 +109,41 @@ generateAluFunction("processInp12b", lines(24)[199:end])
 generateAluFunction("processInp13b", lines(24)[217:end])
 generateAluFunction("processInp14b", lines(24)[235:end])
 
-#const ARG_RANGES = sort(abs, [-20:20])
+#const ARG_RANGES = sort(-20:20; by=abs)
 const ARG_RANGES = [0]
-const Z_RANGES = sort!(abs, [-100000:10000])
+const Z_RANGES = sort(-100000:100000; by=abs, rev=true)
 
-function searchForWXYZ(f,targetZ,inputs)
-    result = Int[]
-    for x in 0:0#-20:20
-        for y in 0:0#-20:20
-            for w in 0:0#-20:20
-                for z in -100000:100000
+function searchForWXYZ(onSuccess, f,targetZ,inputs)
+    for x in ARG_RANGES
+        for y in ARG_RANGES
+            for w in ARG_RANGES
+                for z in Z_RANGES
                     if f(inputs, w=w,x=x,y=y,z=z)[4] == targetZ
-                        push!(result, z)
+                        result = onSuccess(z)
+                        if !isnothing(result)
+                            return result
+                        end
                     end
                 end
             end
         end
     end
-    return result
+    return nothing
 end
 
-function searchForZ(f,targetZ,otherInputs=Int[])
-    result = Tuple{Int,Int}[]
+function searchForZ(onSuccess, f,targetZ,otherInputs=Int[])
     for input = 9:-1:1
         inputs=Int[[input];otherInputs]
-        for z in searchForWXYZ(f, targetZ, inputs)
-            push!(result, (input,z))
+        result = searchForWXYZ(z->onSuccess(input, z), f, targetZ, inputs)
+        if !isnothing(result)
+            return result
         end
     end
-    @show f, targetZ, result
-    return result
+    return nothing
 end
 
-@show searchForZ(processInp14, 0)
-@show searchForZ(processInp13, 11)
+@show searchForZ((args...)->args, processInp14, 0)
+@show searchForZ((args...)->args, processInp13, 11)
 
 const processInp=[
         processInp1,
@@ -157,19 +179,34 @@ const processInpB=[
         processInp14b,
     ]
 
-@show searchForZ(processInp[14], 0)
+@show searchForZ((args...)->args, processInp[14], 0)
 
 function searchForInputs(targetZ=0, digit=14, inputs=Int[])
-    @show :searchForInputs, targetZ, digit, inputs
-
     if digit==0
-        return n
     end
 
-    for (input,z) in searchForZ(processInp[digit], 0)
-        result = searchForInputs(z,digit-1, Int[[input];inputs])
-        if !isnothing(result)
-            return result
+    return searchForZ(processInp[digit],targetZ) do input,z
+        if digit == 1
+            inputs = [[input];inputs]
+            if validate(inputs)[4] == 0
+                @show :result,inputs
+            else
+                @show :rejected,inputs
+            end
+        else
+            n = 1
+            inputs = [[input];inputs]
+            nextZ = z
+            w=0;x=0;y=0
+            for d in digit:14
+                (w,x,y,nextZ) = processInp[d](inputs[n], w=w,x=x,y=y,z=nextZ)
+            end
+            if nextZ == 0
+                @show :continuing, digit,input,z,nextZ
+                searchForInputs(z, digit-1, inputs)
+            else
+                return nothing
+            end
         end
     end
     return nothing
@@ -177,4 +214,4 @@ end
 
 result = searchForInputs()
 @show result
-@test result != nothing && validate([parse(Int, c) for c in result])[4] == 0
+@test result !== nothing && validate([parse(Int, c) for c in result])[4] == 0

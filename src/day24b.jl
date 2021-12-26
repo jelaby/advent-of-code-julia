@@ -88,30 +88,35 @@ generateAluFunction("processInp12b", lines(24)[199:end])
 generateAluFunction("processInp13b", lines(24)[217:end])
 generateAluFunction("processInp14b", lines(24)[235:end])
 
+#const ARG_RANGES = sort(abs, [-20:20])
+const ARG_RANGES = [0]
+const Z_RANGES = sort!(abs, [-100000:10000])
+
 function searchForWXYZ(f,targetZ,inputs)
-    @show :searchForWXYZ,f,targetZ,inputs
+    result = Int[]
     for x in 0:0#-20:20
         for y in 0:0#-20:20
             for w in 0:0#-20:20
                 for z in -100000:100000
                     if f(inputs, w=w,x=x,y=y,z=z)[4] == targetZ
-                        return true
+                        push!(result, z)
                     end
                 end
             end
         end
     end
-    return false
+    return result
 end
 
 function searchForZ(f,targetZ,otherInputs=Int[])
-    result = Int[]
+    result = Tuple{Int,Int}[]
     for input = 9:-1:1
         inputs=Int[[input];otherInputs]
-        if searchForWXYZ(f, targetZ, inputs)
-            push!(result, input)
+        for z in searchForWXYZ(f, targetZ, inputs)
+            push!(result, (input,z))
         end
     end
+    @show f, targetZ, result
     return result
 end
 
@@ -161,8 +166,8 @@ function searchForInputs(targetZ=0, digit=14, inputs=Int[])
         return n
     end
 
-    for input in searchForZ(processInp[digit], 0)
-        result = searchForInputs(0,digit-1, Int[[input];inputs])
+    for (input,z) in searchForZ(processInp[digit], 0)
+        result = searchForInputs(z,digit-1, Int[[input];inputs])
         if !isnothing(result)
             return result
         end

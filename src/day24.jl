@@ -31,7 +31,7 @@ function execute(lines, inputs)
         "mul" => (alu, args) -> alu.vars[asVar(args[1])] = getVar(alu, args[1]) * getVarOrValue(alu, args[2]),
         "div" => (alu, args) -> alu.vars[asVar(args[1])] = getVar(alu, args[1]) ÷ getVarOrValue(alu, args[2]),
         "mod" => (alu, args) -> alu.vars[asVar(args[1])] = getVar(alu, args[1]) % getVarOrValue(alu, args[2]),
-        "eql" => (alu, args) -> alu.vars[asVar(args[1])] = getVar(alu, args[1]) == getVarOrValue(alu, args[2]),
+        "eql" => (alu, args) -> alu.vars[asVar(args[1])] = getVar(alu, args[1]) == getVarOrValue(alu, args[2]) ? 1::Int : 0::Int,
     )
 
     for line in lines
@@ -236,7 +236,7 @@ operatorFor(::AddExpression) = (+)
 operatorFor(::MulExpression) = (*)
 operatorFor(::DivExpression) = (÷)
 operatorFor(::ModExpression) = (%)
-operatorFor(::EqlExpression) = (==)
+operatorFor(::EqlExpression) = (l,r) -> l == r ? 1 : 0
 
 values(e::ValueExpression) = e.value
 values(e::InpExpression) = e.first:e.stride:e.last

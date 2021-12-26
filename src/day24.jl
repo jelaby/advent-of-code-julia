@@ -299,6 +299,7 @@ factors(e::ValueExpression) = Set{Int}(e.value)
 factors(e::Expression) = Set{Int}()
 
 function simplify(e::Expression)
+    return e
     actualValues = values(e)
     if isnothing(actualValues)
         return e

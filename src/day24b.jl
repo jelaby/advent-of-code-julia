@@ -12,7 +12,7 @@ using Dates: now
 function generateAluFunction(name,lines)
     inputNumber = 1
     body = [
-        "function "*name*"(n; w=0, x=0, y=0, z=0)"
+        "function "*name*"(n; w::Int=0, x::Int=0, y::Int=0, z::Int=0)"
     ]
     for line in lines
         (op, arg...) = split(line, ' ')
@@ -29,7 +29,7 @@ function generateAluFunction(name,lines)
         elseif op == "mod"
             push!(body, arg[1] * " %= " * arg[2])
         elseif op == "eql"
-            push!(body, arg[1] * " = (" * arg[1] * " == " * arg[2] * ")")
+            push!(body, arg[1] * " = (" * arg[1] * " == " * arg[2] * ") ? 1 : 0")
         else
             throw(ArgumentError("Unrecognised command "*line))
         end
@@ -111,9 +111,10 @@ generateAluFunction("processInp14b", lines(24)[235:end])
 
 #const ARG_RANGES = sort(-20:20; by=abs)
 const ARG_RANGES = [0]
-const Z_RANGES = sort(-100000:100000; by=abs, rev=true)
+const Z_RANGES = sort(-100000:100000; by=abs)
 
 function searchForWXYZ(onSuccess, f,targetZ,inputs)
+
     for x in ARG_RANGES
         for y in ARG_RANGES
             for w in ARG_RANGES
@@ -181,35 +182,33 @@ const processInpB=[
 
 @show searchForZ((args...)->args, processInp[14], 0)
 
-function searchForInputs(targetZ=0, digit=14, inputs=Int[])
+#@test validate([8, 2, 1, 3, 6, 1, 4, 4, 9, 9, 9, 3, 9, 9]) == 0
+
+function searchForInputs(targetZ=0, digit=14, inputs=Int[], allResults=Int[])
+    print('\r', targetZ, ' ', digit, ' ', inputs, "                                                  ")
     return searchForZ(processInp[digit],targetZ) do input,z
-        if digit == 1
-            nextInputs = [[input];inputs]
-            if validate(nextInputs)[4] == 0
-                @show :result,nextInputs
-            else
-                @show :rejected,nextInputs
-            end
-        else
-            n = 1
-            nextInputs = [[input];inputs]
-            nextZ = z
-            w=0;x=0;y=0
-            for d in digit:14
-                (w,x,y,nextZ) = processInp[d]([nextInputs[n]], w=w,x=x,y=y,z=nextZ)
-                n=n+1
-            end
-            if nextZ == 0
-                searchForInputs(z, digit-1, nextInputs)
-            else
-                @show :rejected, digit,nextInputs,z,nextZ
-                return nothing
-            end
+        nextInputs = [[input];inputs]
+        n = 1
+        nextZ = z
+        w=0;x=0;y=0
+        for d in digit:14
+            (w,x,y,nextZ) = processInp[d]([nextInputs[n]], w=w,x=x,y=y,z=nextZ)
+            n=n+1
         end
+        if digit == 1
+            println()
+            if validate(nextInputs)[4] == 0
+                @show :results,push!(allResults, reduce((acc,val) -> acc * 10 + val, nextInputs))
+            end
+        elseif nextZ == 0
+            searchForInputs(z, digit-1, nextInputs, allResults)
+        end
+        return nothing
     end
-    return nothing
+    return allResults
 end
 
-result = searchForInputs()
-@show result
-@test result !== nothing && validate([parse(Int, c) for c in result])[4] == 0
+print("Searching: 0")
+results = searchForInputs()
+sort!(results; rev=true)
+@show results

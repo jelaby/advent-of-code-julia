@@ -115,13 +115,13 @@ function mulExpression(l::Expression,r::Expression)
         (l,r)=(r,l)
     end
     if hasFixedValue(l) && hasFixedValue(r)
-        @show :simplifiedMul, l, r
-        return valueExpression(fixedValue(l)*fixedValue(r))
+        @show :simplifiedMulFixed, l, r
+        return valueExpression(fixedValue(l)*fixedValue(r), union(factors(l),factors(r)))
     elseif fixedValue(l) == 0
-        @show :simplifiedMul, 0
+        @show :simplifiedMulZero, 0
         return valueExpression(0)
     elseif fixedValue(l) == 1
-        @show :simplifiedMul, r
+        @show :simplifiedMulOne, r
         return r
     end
     # pull fixed multiplier down
@@ -139,7 +139,7 @@ function mulExpression(l::Expression,r::Expression)
             end
         end
     end
-    return simplify(MulExpression(l,r,fixedValue(l),fixedValue(r)))
+    return simplify(MulExpression(l,r,union(factors(l),factors(r))))
 end
 
 struct DivExpression <: Expression
@@ -154,6 +154,9 @@ function divExpression(l::Expression,r::Expression)
     elseif fixedValue(l) == 0
         @show :simplifiedDiv, 0
         return valueExpression(0)
+    end
+    if hasFixedValue(r) && l isa MulExpression && hasFixedValue(l.l) && fixedValue(l.l) % fixedValue(r) == 0
+        return mulExpression(fixedValue(l.l)/fixedValue(r), l.r)
     end
     return simplify(DivExpression(l,r))
 end
@@ -237,10 +240,14 @@ end
 
 struct ValueExpression <: Expression
     value::Int
+    factors::Set{Int}
 end
 
 function valueExpression(value)
-    return ValueExpression(value)
+    return valueExpression(value, Set{Int}())
+end
+function valueExpression(value, factors)
+    return ValueExpression(value, setdiff(union(factors, value), [0]))
 end
 valueExpression(value::AbstractString) = valueExpression(asInt(value))
 
@@ -249,7 +256,7 @@ mutable struct Decompiler
     nextInput::Int
     vars::Dict{Char, Expression}
 end
-Decompiler(inputs) = Decompiler(inputs, 1, Dict('w'=>ValueExpression(0),'x'=>ValueExpression(0),'y'=>ValueExpression(0),'z'=>ValueExpression(0)))
+Decompiler(inputs) = Decompiler(inputs, 1, Dict('w'=>valueExpression(0),'x'=>valueExpression(0),'y'=>valueExpression(0),'z'=>valueExpression(0)))
 
 getDecompilerVarOrValue(alu, arg) = get(()->valueExpression(arg), alu.vars, asVar(arg))
 
@@ -313,7 +320,7 @@ fallbackValues(e::ModExpression) = hasFixedValue(e.r) ? Set(0:fixedValue(e.r)-1)
 
 # known factors
 factors(e::MulExpression) = e.factors
-factors(e::ValueExpression) = Set{Int}(e.value)
+factors(e::ValueExpression) = @show e.factors
 factors(e::Expression) = Set{Int}()
 
 function simplify(e::Expression)

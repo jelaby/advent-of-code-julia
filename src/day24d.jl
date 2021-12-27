@@ -78,16 +78,16 @@ lastPartLine(n) = n < length(inputLines) ? inputLines[n+1]-1 : length(ll)
 
 for i in 1:lastSegment
     for j in 1:lastSegment
-        fragments[i,j] = generateAluFunction(ll[firstPartLine(i):lastPartLine(j)], debug=i==1 && j==14)
+        fragments[i,j] = generateAluFunction(ll[firstPartLine(i):lastPartLine(j)])
     end
 end
 
 @test fragments[1,14]([parse(Int, c) for c in "13579246899999"])[4] == 3144333912
 @test fragments[4,14]([parse(Int, c) for c in "79246899999"], fragments[1,3]([parse(Int, c) for c in "135"])...)[4] == 3144333912
 
-#const ARG_RANGES = sort(-20:20; by=abs)
-const ARG_RANGES = [0]
-const Z_RANGES = sort(-100000:100000; by=abs)
+const ARG_RANGES = sort(-20:20; by=abs)
+#const ARG_RANGES = [0]
+const Z_RANGES = sort(-10000000:10000000; by=abs)
 
 
 
@@ -99,14 +99,16 @@ function findInputs(fragment, minTargetZ, maxTargetZ)
     for input in 1:9
         minZ = typemax(Int)
         maxZ = typemin(Int)
+        #for y in ARG_RANGES
         for z in Z_RANGES
-            if minTargetZ <= fragment([input], 0, 0, 0, z)[4] <= maxTargetZ
+            if minTargetZ <= fragment([input], 0,0,0, z)[4] <= maxTargetZ
                 if z > maxZ; maxZ=z; end
                 if z < minZ; minZ=z; end
                 if z > overallMaxZ; overallMaxZ=z; end
                 if z < overallMinZ; overallMinZ=z; end
             end
         end
+        #end
         result[input] = (minZ, maxZ)
     end
     return (overallMinZ, overallMaxZ, result)
@@ -118,6 +120,16 @@ end
 function nextDigit(part, allInputZs, w,x,y,z, digits=[])
 
     if part == 15
+        for p in 14:-1:1
+            if !any(allInputZs[p][digits[p]][1]:allInputZs[p][digits[p]][2]) do testZ;return fragments[p,14](digits[p:14],0,0,0,testZ)[4] == 0; end
+                @show :rejectEarly, p, digits, allInputZs
+            end
+            if any([allInputZs[p][digits[p]][1]-1,allInputZs[p][digits[p]][2]+1]) do testZ; return fragments[p,14](digits[p:14],0,0,0,testZ)[4] == 0; end
+                @show :foundSimilar, p, digits, allInputZs
+            end
+        end
+
+
         if fragments[1,14](digits, 0,0,0,0)[4] == 0
             return digits
         else
@@ -128,17 +140,15 @@ function nextDigit(part, allInputZs, w,x,y,z, digits=[])
 
     inputZs = allInputZs[part]
     inputs = filter(sort(collect(keys(inputZs)); rev=true)) do input
-        @show z, input,inputZs[input]
-        inputZs[input][1] <= z && inputZs[input][2] >= z
+        return part == 1 || (inputZs[input][1] <= z <= inputZs[input][2])
     end
 
     if isempty(inputs)
-        @show :no_result,part, allInputZs, w,x,y,z
         return nothing
     end
 
     for input in inputs
-        newDigits = [digits;[input]]
+        newDigits = Int[digits;[input]]
         newRegisters = fragments[part,part]([input], w,x,y,z)
         result = nextDigit(part+1, allInputZs, newRegisters..., newDigits)
         if !isnothing(result)
@@ -146,7 +156,6 @@ function nextDigit(part, allInputZs, w,x,y,z, digits=[])
         end
     end
 
-    @show :no_children, part, allInputZs, w,x,y,z
     return nothing
 end
 

@@ -9,7 +9,7 @@ using AoC, Test, Memoize
 using Dates: now
 
 
-function generateAluFunction(lines)
+function generateAluFunction(lines; debug=false)
     inputNumber = 1
     body = [
         "(n, w::Int=0, x::Int=0, y::Int=0, z::Int=0) -> begin"
@@ -18,21 +18,27 @@ function generateAluFunction(lines)
         (op, arg...) = split(line, ' ')
 
         if op == "inp"
-            push!(body, arg[1] * " = n[" * string(inputNumber) * "]")
+            command = arg[1] * " = n[" * string(inputNumber) * "]"
             inputNumber = inputNumber + 1
         elseif op == "add"
-            push!(body, arg[1] * " += " * arg[2])
+            command = arg[1] * " += " * arg[2]
         elseif op == "mul"
-            push!(body, arg[1] * " *= " * arg[2])
+            command = arg[1] * " *= " * arg[2]
         elseif op == "div"
-            push!(body, arg[1] * " ÷= " * arg[2])
+            command = arg[1] * " ÷= " * arg[2]
         elseif op == "mod"
-            push!(body, arg[1] * " %= " * arg[2])
+            command = arg[1] * " %= " * arg[2]
         elseif op == "eql"
-            push!(body, arg[1] * " = (" * arg[1] * " == " * arg[2] * ") ? 1 : 0")
+            command = arg[1] * " = (" * arg[1] * " == " * arg[2] * ") ? 1 : 0"
         else
             throw(ArgumentError("Unrecognised command "*line))
         end
+
+        if debug
+            command = "@show " * command
+        end
+
+        push!(body, command)
 
     end
 
@@ -68,9 +74,11 @@ fragments = Array{Function}(undef, lastSegment,lastSegment)
 firstPartLine(n) = inputLines[n]
 lastPartLine(n) = n < length(inputLines) ? inputLines[n+1]-1 : length(ll)
 
+@show inputLines
+
 for i in 1:lastSegment
     for j in 1:lastSegment
-        fragments[i,j] = generateAluFunction(ll[firstPartLine(i):lastPartLine(j)])
+        fragments[i,j] = generateAluFunction(ll[firstPartLine(i):lastPartLine(j)], debug=i==1 && j==14)
     end
 end
 
@@ -153,6 +161,10 @@ function findChain(fragments)
     end
 
     reverse!(allInputZs)
+
+    for i in eachindex(allInputZs)
+        @show i,allInputZs[i]
+    end
 
     return nextDigit(1, allInputZs, 0,0,0,0)
 end

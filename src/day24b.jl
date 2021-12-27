@@ -5,7 +5,7 @@ day24b:
 - Date: 2021-12-25
 =#
 
-using AoC, Test
+using AoC, Test, Memoize
 using Dates: now
 
 
@@ -111,7 +111,7 @@ generateAluFunction("processInp14b", lines(24)[235:end])
 
 #const ARG_RANGES = sort(-20:20; by=abs)
 const ARG_RANGES = [0]
-const Z_RANGES = sort(0:100000; by=abs)
+const Z_RANGES = sort(-100000:100000; by=abs)
 
 function searchForWXYZ(onSuccess, f,targetZ,inputs)
 

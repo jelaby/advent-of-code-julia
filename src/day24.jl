@@ -191,6 +191,7 @@ end
 simplifyModulo(e::Expression, divisor) = e
 function simplifyModulo(e::MulExpression, divisor)
     if divisor ∈ factors(e)
+        @show :simplifyModuloMul, divisor, factors(e), e
         return valExpression(0)
     end
     return e
@@ -205,8 +206,8 @@ function simplifyModulo(e::AddExpression, divisor)
         r = valueExpression(0)
     end
     if l !== e.l || r !== e.r
-        @show :simplifyModuleAdd, l, r
-        return addExpression(l,r)
+        @show :simplifyModuloAdd, l, r
+        return simplifyModulo(addExpression(l,r), divisor)
     end
     return e
 end

@@ -85,7 +85,7 @@ const Z_RANGES = sort(-100000:100000; by=abs)
 
 
 function findInputs(fragment, minTargetZ, maxTargetZ)
-    result = Tuple{Int, Int, Int}[]
+    result = Dict{Int, Tuple{Int,Int}}()
     overallMinZ = typemax(Int)
     overallMaxZ = typemin(Int)
     for input in 1:9
@@ -99,7 +99,7 @@ function findInputs(fragment, minTargetZ, maxTargetZ)
                 if z < overallMinZ; overallMinZ=z; end
             end
         end
-        push!(result, (input, minZ, maxZ))
+        result[input] = (minZ, maxZ)
     end
     return (overallMinZ, overallMaxZ, result)
 end
@@ -107,15 +107,53 @@ end
 @show findInputs(fragments[14,14], 0,0)
 
 
+function nextDigit(part, allInputZs, w,x,y,z, digits=[])
+
+    if part == 15
+        if fragments[1,14](digits, 0,0,0,0)[4] == 0
+            return digits
+        else
+            @show :reject, digits
+        end
+    end
+
+    inputZs = allInputZs[part]
+    inputs = filter(sort(collect(keys(inputZs)); rev=true)) do input
+        @show z, input,inputZs[input]
+        inputZs[input][1] <= z && inputZs[input][2] >= z
+    end
+
+    if isempty(inputs)
+        @show :no_result,part, allInputZs, w,x,y,z
+        return nothing
+    end
+
+    for input in inputs
+        newRegisters = fragments[part,part]([input], w,x,y,z)
+        result = nextDigit(part+1, allInputZs, newRegisters...)
+        if !isnothing(result)
+            return [[input];result]
+        end
+    end
+
+    @show :no_children, part, allInputZs, w,x,y,z
+    return nothing
+end
+
+
 function findChain(fragments)
+    allInputZs = Dict{Int, Tuple{Int, Int}}[]
     targetMinZ = 0
     targetMaxZ = 0
     for part = 14:-1:1
-        @show (nextMinZ, nextMaxZ, inputZs) = findInputs(fragments[part,part], targetMinZ, targetMaxZ)
-        targetMinZ = nextMinZ
-        targetMaxZ = nextMaxZ
+        (targetMinZ, targetMaxZ, inputZs) = findInputs(fragments[part,part], targetMinZ, targetMaxZ)
+        push!(allInputZs, inputZs)
     end
+
+    reverse!(allInputZs)
+
+    return nextDigit(1, allInputZs, 0,0,0,0)
 end
 
-findChain(fragments)
+@show findChain(fragments)
 

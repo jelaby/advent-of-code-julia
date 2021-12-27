@@ -111,15 +111,33 @@ end
 MulExpression(l,r,factors::Union{Nothing,Int}...) = MulExpression(l,r,Set{Int}(filter(x->!isnothing(x), factors)))
 
 function mulExpression(l::Expression,r::Expression)
-    if fixedValue(l) == 0 || fixedValue(r) == 0
+    if hasFixedValue(r) && !hasFixedValue(l)
+        (l,r)=(r,l)
+    end
+    if hasFixedValue(l) && hasFixedValue(r)
+        @show :simplifiedMul, l, r
+        return valueExpression(fixedValue(l)*fixedValue(r))
+    elseif fixedValue(l) == 0
         @show :simplifiedMul, 0
         return valueExpression(0)
     elseif fixedValue(l) == 1
         @show :simplifiedMul, r
         return r
-    elseif fixedValue(r) == 1
-        @show :simplifiedMul, l
-        return l
+    end
+    # pull fixed multiplier down
+    if l isa MulExpression
+        if hasFixedValue(l.l)
+            return mulExpression(mulExpression(l.r, r), l.l)
+        end
+    end
+    if r isa MulExpression
+        if hasFixedValue(r.l)
+            if hasFixedValue(l)
+                return mulExpression(r.r, mulExpression(r.l,l))
+            else
+                return mulExpression(mulExpression(r.r, l), r.l)
+            end
+        end
     end
     return simplify(MulExpression(l,r,fixedValue(l),fixedValue(r)))
 end
@@ -210,8 +228,8 @@ function eqlExpression(l::Expression,r::Expression)
             return valueExpression(0)
         end
     end
-    if hasFixedValue(l) && hasFixedValue(r) && fixedValue(l) == fixedValue(r)
-        return valueExpression(l == r ? 1 : 0)
+    if hasFixedValue(l) && hasFixedValue(r)
+        return valueExpression(fixedValue(l) == fixedValue(r) ? 1 : 0)
     end
 
     return simplify(EqlExpression(l,r))
@@ -355,9 +373,9 @@ end
 
 
 const fourteenInps=[inpExpression(n,1,9) for n in 1:14]
-@test string(decompile(["inp x", "mul x -1"],fourteenInps).vars['x']) == "d[1]*-1"
+@test string(decompile(["inp x", "mul x -1"],fourteenInps).vars['x']) == "-1*d[1]"
 @test string(decompile(["inp x", "mul x 0"],fourteenInps).vars['x']) == "0"
-@test string(decompile(["inp x", "mul x 2"],fourteenInps).vars['x']) == "d[1]*2"
+@test string(decompile(["inp x", "mul x 2"],fourteenInps).vars['x']) == "2*d[1]"
 @test string(decompile(["inp x", "add x 0"],fourteenInps).vars['x']) == "d[1]"
 @test string(decompile(["inp x", "add y x"],fourteenInps).vars['y']) == "d[1]"
 @test string(decompile(["inp x", "add x 2"],fourteenInps).vars['x']) == "d[1]+2"
@@ -368,6 +386,7 @@ const fourteenInps=[inpExpression(n,1,9) for n in 1:14]
 @test string(decompile(["inp z", "add y 2", "add x y", "add x z", "add x y"],fourteenInps).vars['x']) ∈ ["d[1]+4","4+d[1]"]
 @test string(decompile(["inp x", "add x 2", "inp y", "eql x y"],fourteenInps).vars['x']) == "(d[1]+2)==d[2]"
 @test string(decompile(["inp x", "add x 12", "inp y", "eql x y"],fourteenInps).vars['x']) == "0"
+@test string(decompile(["inp x", "mul x 2","mul x 3"],fourteenInps).vars['x']) == "6*d[1]"
 
 println("Testing complete")
 

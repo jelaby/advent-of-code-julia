@@ -113,7 +113,8 @@ function nextDigit(part, allInputZs, w,x,y,z, digits=[])
         if fragments[1,14](digits, 0,0,0,0)[4] == 0
             return digits
         else
-            @show :reject, digits
+            @show :reject, digits, fragments[1,14](digits, 0,0,0,0)[4]
+            return nothing
         end
     end
 
@@ -129,10 +130,11 @@ function nextDigit(part, allInputZs, w,x,y,z, digits=[])
     end
 
     for input in inputs
+        newDigits = [digits;[input]]
         newRegisters = fragments[part,part]([input], w,x,y,z)
-        result = nextDigit(part+1, allInputZs, newRegisters...)
+        result = nextDigit(part+1, allInputZs, newRegisters..., newDigits)
         if !isnothing(result)
-            return [[input];result]
+            return result
         end
     end
 

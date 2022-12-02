@@ -19,19 +19,23 @@ iswinner(a,b) = (a,b) ∈ winners
 @test iswinner(:paper,:rock) == true
 
 score(a::Tuple{Symbol,Symbol}) = score(a...)
-score(a,b) = scores[a] + ( iswinner(a,b) ? 6 : ( iswinner(b,a) ? 0 : 3 ) )
-@test score(:rock, :scissors) == 7
-@test score(:rock, :paper) == 1
-@test score((:rock, :scissors)) == 7
-@test score((:rock, :paper)) == 1
+score(a,b) = scores[b] + ( iswinner(b,a) ? 6 : ( iswinner(a,b) ? 0 : 3 ) )
+@test score(:rock, :scissors) == 3
+@test score(:rock, :paper) == 8
+@test score((:rock, :scissors)) == 3
+@test score((:rock, :paper)) == 8
 @test score((:rock, :rock)) == 4
 
 game(lines::Vector{<:AbstractString}) = game(split.(lines) .|> pair -> (decoder1[pair[1]], decoder2[pair[2]]))
 game(rounds::Vector{Tuple{Symbol,Symbol}}) = sum(score.(rounds))
-@test game([(:rock, :paper)]) == 1
-@test game([(:rock, :scissors)]) == 7
+@test game([(:rock, :paper)]) == 8
+@test game([(:rock, :scissors)]) == 3
+@test game([(:scissors, :scissors)]) == 6
 @test game( [ (:rock, :paper), (:scissors, :paper) ] ) == 10
 
+@test game(["A Y"]) == 8
+@test game(["B X"]) == 1
+@test game(["C Z"]) == 6
 @test game(AoC.exampleLines(2,1)) == 15
 
 show(AoC.lines(2) |> x -> @time game(x))

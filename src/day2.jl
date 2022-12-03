@@ -39,3 +39,33 @@ game(rounds::Vector{Tuple{Symbol,Symbol}}) = sum(score.(rounds))
 @test game(AoC.exampleLines(2,1)) == 15
 
 show(AoC.lines(2) |> x -> @time game(x))
+
+moves = [:rock, :paper, :scissors]
+
+lose(opponent) = moves[findfirst(moves) do move
+    iswinner(opponent, move)
+end]
+draw(opponent) = moves[findfirst(moves) do move
+    !iswinner(opponent, move) && !iswinner(move, opponent)
+end]
+win(opponent) = moves[findfirst(moves) do move
+    iswinner(move, opponent)
+end]
+
+outcomeDecoder = Dict("X" => lose, "Y" => draw, "Z" => win)
+decodeOutcome(code)::Function = outcomeDecoder[code]
+
+move(opponent, outcome) =  outcome(opponent)
+
+score2(a::Tuple) = score2(a...)
+score2(opponent, outcome) = score(opponent, outcome(opponent))
+
+game2(lines::Vector{<:AbstractString}) = game(split.(lines) .|> (pair -> (decoder1[pair[1]], decodeOutcome(pair[2]))) .|> (pair -> (pair[1], pair[2](pair[1]))))
+game2(rounds::Vector{Tuple{Symbol, <:Function}}) = sum(score2.(rounds))
+
+@test game2(["A Y"]) == 4
+@test game2(["B X"]) == 1
+@test game2(["C Z"]) == 7
+@test game2(AoC.exampleLines(2,1)) == 12
+
+show(AoC.lines(2) |> x -> @time game2(x))

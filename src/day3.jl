@@ -7,6 +7,7 @@ day3:
 include("AoC.jl")
 
 using Test
+using Base.Iterators
 
 
 findDuplicate(l, r) = findDuplicate(Set([c for c in l]), r)
@@ -29,3 +30,27 @@ part1(lines) = sum(priority.(findDuplicates(lines)))
 @test part1(AoC.exampleLines(3,1)) == 157
 
 show(AoC.lines(3) |> x -> @time part1(x))
+
+
+findCounts(lines::Vector{<:AbstractString}) = findCounts(flatten(lines .|> line -> Set([c for c in line])))
+function findCounts(items)
+    T = eltype(items)
+    result = Dict{T, Int}()
+    for i in items
+        push!(result, i => get(result, i, 0) + 1)
+    end
+    return result
+end
+@test findCounts(["abcd", "cdef"]) == Dict('a' => 1, 'b' => 1, 'c' => 2, 'd' => 2, 'e' => 1, 'f' => 1)
+@test findCounts(["abcb", "cdef"]) == Dict('a' => 1, 'b' => 1, 'c' => 2, 'd' => 1, 'e' => 1, 'f' => 1)
+
+findIdCards(lines) = keys(filter(findCounts(lines)) do count
+    count.second == 3
+end)
+@test findIdCards(AoC.exampleLines(3,1)) == ['r', 'Z']
+
+
+
+@test part2(AoC.exampleLines(3,1)) == 70
+
+show(AoC.lines(3) |> x -> @time part2(x))

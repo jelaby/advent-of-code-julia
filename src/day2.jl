@@ -38,8 +38,6 @@ game(rounds::Vector{Tuple{Symbol,Symbol}}) = sum(score.(rounds))
 @test game(["C Z"]) == 6
 @test game(AoC.exampleLines(2,1)) == 15
 
-show(AoC.lines(2) |> x -> @time game(x))
-
 moves = [:rock, :paper, :scissors]
 
 lose(opponent) = moves[findfirst(moves) do move
@@ -68,4 +66,4 @@ game2(rounds::Vector{Tuple{Symbol, <:Function}}) = sum(score2.(rounds))
 @test game2(["C Z"]) == 7
 @test game2(AoC.exampleLines(2,1)) == 12
 
-show(AoC.lines(2) |> x -> @time game2(x))
+AoC.day(2, game, game2)

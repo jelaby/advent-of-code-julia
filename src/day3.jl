@@ -29,8 +29,6 @@ part1(lines) = sum(priority.(findDuplicates(lines)))
 
 @test part1(AoC.exampleLines(3,1)) == 157
 
-show(AoC.lines(3) |> x -> @time part1(x))
-
 
 findCounts(lines::Vector{<:AbstractString}) = findCounts(flatten(lines .|> line -> Set([c for c in line])))
 function findCounts(items)
@@ -64,4 +62,4 @@ part2(lines) = sum(priority.(findIdCards(lines)))
 
 @test part2(AoC.exampleLines(3,1)) == 70
 
-show(AoC.lines(3) |> x -> @time part2(x))
+AoC.day(3, part1, part2)

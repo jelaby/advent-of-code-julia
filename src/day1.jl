@@ -37,16 +37,18 @@ function mostStockedElf(elves)
 end
 @test mostStockedElf(elves(AoC.exampleLines(1,1))) == 24000
 
-function mostStockedElves(elves, n)
+part1 = mostStockedElf ∘ elves
+@test part1(AoC.exampleLines(1,1)) == 24000
+
+function mostStockedElves(elves)
 
     totals = sort(sum.(elves), rev=true)
 
     return sum(totals[1:3])
 end
-@test mostStockedElves(elves(AoC.exampleLines(1,1)), 3) == 45000
+@test mostStockedElves(elves(AoC.exampleLines(1,1))) == 45000
 
+part2 = mostStockedElves ∘ elves
+@test part2(AoC.exampleLines(1,1)) == 45000
 
-show(AoC.exampleLines(1,1) |> x -> @time mostStockedElf(elves(x)))
-show(AoC.lines(1) |> x -> @time mostStockedElf(elves(x)))
-show(AoC.exampleLines(1,1) |> x -> @time mostStockedElves(elves(x),3))
-show(AoC.lines(1) |> x -> @time mostStockedElves(elves(x),3))
+AoC.day(1, part1, part2)

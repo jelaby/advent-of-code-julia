@@ -44,12 +44,23 @@ end
 @test findCounts(["abcd", "cdef"]) == Dict('a' => 1, 'b' => 1, 'c' => 2, 'd' => 2, 'e' => 1, 'f' => 1)
 @test findCounts(["abcb", "cdef"]) == Dict('a' => 1, 'b' => 1, 'c' => 2, 'd' => 1, 'e' => 1, 'f' => 1)
 
-findIdCards(lines) = keys(filter(findCounts(lines)) do count
+function findIdCards(lines)
+    result = []
+    for i in 1:3:length(lines)
+        push!(result, findGroupIdCards(lines[i:i+2])...)
+    end
+    return result
+end
+
+
+findGroupIdCards(lines) = keys(filter(findCounts(lines)) do count
     count.second == 3
 end)
+
 @test findIdCards(AoC.exampleLines(3,1)) == ['r', 'Z']
 
 
+part2(lines) = sum(priority.(findIdCards(lines)))
 
 @test part2(AoC.exampleLines(3,1)) == 70
 

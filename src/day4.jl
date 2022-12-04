@@ -11,6 +11,7 @@ using Test
 
 
 part1(lines) = count(split.(lines, r"[,-]")) do areas
+    areas = parse.(Int, areas)
     (areas[1] <= areas[3] && areas[2] >= areas[4]) || (areas[3] <= areas[1] && areas[4] >= areas[2])
 end
 @test part1(["2-4,6-8"]) == 0

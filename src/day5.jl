@@ -56,7 +56,7 @@ function applyMove!(stacks, move::Move)
     stack = stacks[move.from]
     removed = stack[(end+1-move.count):end]
     stacks[move.from] = stack[1:max(0, length(stack) - move.count)]
-    append!(stacks[move.to], reverse(removed))
+    append!(stacks[move.to], removed)
     return stacks
 end
 
@@ -75,7 +75,7 @@ function part1(lines)
 
     return String(tops(stacks))
 end
-@test part1(example1) == "CMZ"
+@test part1(example1) == "MCD"
 
 
 

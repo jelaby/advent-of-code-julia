@@ -52,11 +52,11 @@ function parseInput(lines)
 
 end
 
-function applyMove!(stacks, move::Move)
+function applyMove!(stacks, move::Move, rearrange)
     stack = stacks[move.from]
     removed = stack[(end+1-move.count):end]
     stacks[move.from] = stack[1:max(0, length(stack) - move.count)]
-    append!(stacks[move.to], removed)
+    append!(stacks[move.to], rearrange(removed))
     return stacks
 end
 
@@ -64,19 +64,20 @@ top(stack) = stack[end]
 tops(stacks) = top.(stacks)
 @test tops([[1,2],[3,4]]) == [2,4]
 
-function part1(lines)
+function rearrangeCrates(lines, rearrange=x->x)
     (; stacks, moves) = parseInput(lines)
 
-    @show stacks moves
-
     for move in moves
-        applyMove!(stacks, move)
+        applyMove!(stacks, move, rearrange)
     end
 
     return String(tops(stacks))
 end
-@test part1(example1) == "MCD"
 
-
+part1(lines) = rearrangeCrates(lines, reverse)
+part2(lines) = rearrangeCrates(lines)
+@test part1(example1) == "CMZ"
+@test part2(example1) == "MCD"
 
 show(@time part1(lines))
+show(@time part2(lines))

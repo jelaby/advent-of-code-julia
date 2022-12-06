@@ -22,5 +22,7 @@ end
 
 @test startOfPacket("mjqjpqmgbljsphdztnvjfqwrcgsmlb") == 7
 @test startOfPacket("bvwbjplbgvbhsrlpgdmjqwftvncz") == 5
+@test startOfPacket("mjqjpqmgbljsphdztnvjfqwrcgsmlb", 14) == 19
 
-show(@time startOfPacket(lines))
+show(@time startOfPacket(lines[1]))
+show(@time startOfPacket(lines[1], 14))

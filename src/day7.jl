@@ -83,21 +83,23 @@ end
 size(dir::Dir) = sum(size.(values(dir.children)))
 size(file::File) = file.size
 
-function find(condition, dir::Dir, result=Vector{Node}())
+function find(condition, dir::Dir)
+    result = Vector{Node}()
+
     if condition(dir)
         push!(result, dir)
     end
 
     for child in values(dir.children)
-        find(condition, child, result)
+        append!(result, find(condition, child))
     end
     return result
 end
-function find(condition, file::File, result)
+function find(condition, file::File)
     if condition(file)
-        push!(result, file)
+        return [file]
     end
-    return result
+    return []
 end
 
 part1(lines) = parseInput(lines) |> root -> find(d-> typeof(d)==Dir && size(d)≤100000, root) |> r->sum([size(d) for d in r])
@@ -108,7 +110,7 @@ function part2(lines)
     required=30000000
     used=size(root)
 
-    @show toFree=used - (available - required)
+    toFree=used - (available - required)
 
     return size(first(sort!(find(d->typeof(d)==Dir && size(d)≥toFree, root), by=d->size(d))))
 end

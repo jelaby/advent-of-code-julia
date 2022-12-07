@@ -32,45 +32,35 @@ function parseInput(lines)
     mode = :command
 
     for line in lines
-
         if !isnothing(match(r"^\$\s*cd\s+\.\.", line))
 
             mode=:command
             pwd = pwd.parent
 
         elseif !isnothing(match(r"^\$\s*cd\s+/", line))
-
             mode=:command
             pwd = root
 
         elseif (cd = match(r"^\$\s*cd\s+(.*)", line)) !== nothing
-
             mode=:command
             name = cd.captures[1]
             pwd = pwd.children[name]
 
         elseif !isnothing(match(r"^\$\s*ls", line))
-
             mode=:ls
 
         elseif mode==:ls
-
             if (ls = match(r"(\d+)\s+(.+)", line)) !== nothing
-
                 pwd.children[ls.captures[2]] = File(ls.captures[2], parse(Int, ls.captures[1]))
 
             elseif (ls = match(r"dir\s+(.+)", line)) !== nothing
-
                 pwd.children[ls.captures[1]] = Dir(ls.captures[1], pwd)
 
             else
                 println("Unrecognised ls " * line)
             end
-
         else
-
             println(line * " not expected in " * String(mode) * " mode")
-
         end
     end
 

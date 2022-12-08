@@ -92,7 +92,9 @@ function find(condition, file::File)
     return []
 end
 
-part1(lines) = parseInput(lines) |> root -> find(d-> typeof(d)==Dir && size(d)≤100000, root) |> r->sum([size(d) for d in r])
+part1(lines) = (parseInput(lines) |>
+    root -> find(d -> typeof(d) == Dir && size(d) ≤ 100000, root) |>
+    r -> sum([size(d) for d in r])
 
 function part2(lines)
     root = parseInput(lines)
@@ -102,7 +104,7 @@ function part2(lines)
 
     toFree=used - (available - required)
 
-    return size(first(sort!(find(d->typeof(d)==Dir && size(d)≥toFree, root), by=d->size(d))))
+    return size(first(sort!(find(d -> typeof(d) == Dir && size(d) ≥ toFree, root), by=d -> size(d))))
 end
 
 @test part1(example1) == 95437

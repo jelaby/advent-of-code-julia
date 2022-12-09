@@ -8,6 +8,7 @@ using Test
 
 lines = open(readlines, "src/day9-input.txt")
 example1 = open(readlines, "src/day9-example-1.txt")
+example2 = open(readlines, "src/day9-example-2.txt")
 
 struct Move
     direction::Char
@@ -29,39 +30,48 @@ recordTail!(trail::Set, T) = push!(trail, T)
 @test any(x -> x > 1, (2,1)) == true
 @test any(x -> x > 2, (2,1)) == false
 
-function doMove(H,T, direction, trail)
-    H2 = H .+ direction
-    if any(Δ -> abs(Δ) > 1, H2 .- T)
-        recordTail!(trail, H)
-        return (H2, H, trail)
-    end
-    return (H2, T, trail)
-end
-@test doMove((1,1), (1,1), (1,0), Set([(1,1)])) == ((2,1), (1,1), Set([(1,1)]))
-@test doMove((2,1), (1,1), (1,0), Set([(1,1)])) == ((3,1), (2,1), Set([(1,1),(2,1)]))
-@test doMove((2,1), (1,1), (0,1), Set([(1,1)])) == ((2,2), (1,1), Set([(1,1)]))
-@test doMove((2,2), (1,1), (0,1), Set([(1,1)])) == ((2,3), (2,2), Set([(1,1),(2,2)]))
+towards(to, from) = sign.(to .- from)
+@test towards((3,2), (1,1)) == (1,1)
 
-function doMove(H,T, move::Move, trail)
+function moveTail(H,T)
+    if any(Δ -> abs(Δ) > 1, H .- T)
+        T = T.+towards(H,T)
+    end
+    return T
+end
+@test moveTail((1,1), (1,1)) == (1,1)
+@test moveTail((2,1), (1,1)) == (1,1)
+@test moveTail((3,1), (1,1)) == (2,1)
+@test moveTail((2,2), (1,1)) == (1,1)
+@test moveTail((3,2), (1,1)) == (2,2)
+
+function doMove(rope, move::Move, trail)
     dir = direction(move.direction)
     for step in 1:move.distance
-        (H,T,trail) = doMove(H,T, dir, trail)
+        rope[1] = rope[1] .+ dir
+        for i in 2:length(rope)
+            rope[i] = moveTail(rope[i-1],rope[i])
+        end
+        recordTail!(trail, rope[end])
     end
-    return (H, T, trail)
+    return (rope, trail)
 end
 
-function doMoves(moves)
-    H = (1,1)
-    T = (1,1)
-    trail = Set{Tuple{Int,Int}}([T])
+function doMoves(moves, ropeLength)
+    rope = fill((1,1), ropeLength)
+    trail = Set{Tuple{Int,Int}}([rope[end]])
     for move in moves
-        (H,T, trail) = doMove(H,T, move, trail)
+        (rope, trail) = doMove(rope, move, trail)
     end
     return trail
 end
 
-part1(lines) = length(doMoves(parseInput(lines)))
+part1(lines) = length(doMoves(parseInput(lines), 2))
+part2(lines) = length(doMoves(parseInput(lines), 10))
 
 @test part1(example1) == 13
+@test part2(example1) == 1
+@test part2(example2) == 36
 
 show(@time part1(lines))
+show(@time part2(lines))

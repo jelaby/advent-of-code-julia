@@ -14,10 +14,10 @@ heights(lines) = reshape([parse(Int, c) for line in lines for c in line], length
 findVisible(heights) = count(CartesianIndices(heights)) do I
     I[1] == 1 || I[1] == size(heights, 1) ||
     I[2] == 1 || I[2] == size(heights, 2) ||
-    heights[I] > reduce(max, heights[1:I[1]-1,I[2]]) ||
-    heights[I] > reduce(max, heights[I[1]+1:end,I[2]]) ||
-    heights[I] > reduce(max, heights[I[1],1:I[2]-1]) ||
-    heights[I] > reduce(max, heights[I[1],I[2]+1:end])
+    heights[I] > maximum(heights[1:I[1]-1,I[2]]) ||
+    heights[I] > maximum(heights[I[1]+1:end,I[2]]) ||
+    heights[I] > maximum(heights[I[1],1:I[2]-1]) ||
+    heights[I] > maximum(heights[I[1],I[2]+1:end])
 end
 
 scenicScore(heights, I, direction::Tuple) = scenicScore(heights, I, CartesianIndex(direction))

@@ -26,25 +26,26 @@ eval(device::Device, ::Val{:noop}) = Device(device.cycle + 1, device.X)
 eval(device::Device, ::Val{:addx}, arg::Int) = Device(device.cycle + 2, device.X + arg)
 eval(device::Device, command::Command) = eval(device, Val(command.command), command.args...)
 
-function signalStrength(program::Vector{Command}, limit, firstSample=20, sampleInterval=40)
+function runProgram(callback, state, program::Vector{Command})
     device = Device(1, 1)
-    samplePoint = firstSample
-    result = 0
 
     for command in program
-        nextDevice = eval(device, command)
+        lastDevice = device
+        device = eval(device, command)
 
-        if nextDevice.cycle > samplePoint
-            result += device.X * samplePoint
-            samplePoint+=sampleInterval
-        end
-        if nextDevice.cycle > limit
-            return result
-        end
-
-        device = nextDevice
+        state = callback(state, device, lastDevice)
     end
-    return result
+    return state
+end
+
+function signalStrength(program::Vector{Command}, limit)
+    return runProgram((; result=0, samplePoint=20), program) do state, device, lastDevice
+        if device.cycle > state.samplePoint && state.samplePoint <= limit
+            return (; result=state.result + lastDevice.X*state.samplePoint, samplePoint=state.samplePoint+40)
+        else
+            return (; result=state.result, state.samplePoint)
+        end
+    end.result
 end
 
 @test signalStrength([Command(:noop,[]), Command(:addx, [3]), Command(:addx, [-5])], 3) == 0
@@ -54,9 +55,27 @@ end
 @test signalStrength(parse.(Command, example1),100) == 420 + 1140 + 1800
 @test signalStrength(parse.(Command, example1),220) == 13140
 
+function image(program::Vector{Command})
+    image = runProgram(fill(false, 240), program) do image, device, lastDevice
+        for cycle in lastDevice.cycle:device.cycle - 1
+            pixelStart=lastDevice.X - 1
+            pixelEnd=lastDevice.X + 1
+            if pixelStart <= mod(cycle - 1, 40) <= pixelEnd
+                image[cycle] = true
+            end
+        end
+        return image
+    end
+
+    image = reshape([pixel ? '#' : '.' for pixel in image], 40, 6)
+    return [String(row) for row in eachslice(image, dims=2)]
+end
+@test image(parse.(Command, example1)) == open(readlines, "src/day10-output-2.txt")
 
 part1(lines) = signalStrength(parse.(Command, lines), 220)
+part2(lines) = join(image(parse.(Command, lines)), "\n")
 
 @test part1(example1) == 13140
 
 show(@time part1(lines))
+println(@time part2(lines))

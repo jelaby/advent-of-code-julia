@@ -73,9 +73,9 @@ end
 @test image(parse.(Command, example1)) == open(readlines, "src/day10-output-2.txt")
 
 part1(lines) = signalStrength(parse.(Command, lines), 220)
-part2(lines) = join(image(parse.(Command, lines)), "\n")
+part2(lines) = replace(join(image(parse.(Command, lines)), "\n"), '.'=>' ', '#'=>'█')
 
 @test part1(example1) == 13140
 
-show(@time part1(lines))
-println(@time part2(lines))
+@time println(part1(lines))
+@time println(part2(lines))

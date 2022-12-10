@@ -43,7 +43,7 @@ function signalStrength(program::Vector{Command}, limit)
         if device.cycle > state.samplePoint && state.samplePoint <= limit
             return (; result=state.result + lastDevice.X*state.samplePoint, samplePoint=state.samplePoint+40)
         else
-            return (; result=state.result, state.samplePoint)
+            return state
         end
     end.result
 end

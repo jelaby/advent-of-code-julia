@@ -21,7 +21,7 @@ struct ModuloNumber
     number::Dict{Int,Int}
 end
 ModuloNumber(n::Int) =
-    ModuloNumber(Dict([factor => n % factor for factor in [2,3,5,7,11,13,17,19,23,999]]))
+    ModuloNumber(Dict([factor => n % factor for factor in [2,3,5,7,11,13,17,19,23]]))
 
 Base.:+(x::ModuloNumber, y::Int) = ModuloNumber(Dict([factor => (x.number[factor] + y) % factor for factor in keys(x.number)]))
 Base.:*(x::ModuloNumber, y::Int) = ModuloNumber(Dict([factor => (x.number[factor] * y) % factor for factor in keys(x.number)]))

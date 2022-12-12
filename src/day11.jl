@@ -17,18 +17,18 @@ end
 Operation(operator::AbstractString, getter::AbstractString) =
     Operation(operatorFor(Val(Symbol(operator))), getterFor(getter))
 
+const MODULUS = 2*3*5*7*11*13*17*19*23
 struct ModuloNumber
-    number::Dict{Int,Int}
+    number::Int
+    ModuloNumber(number::Int) = new(number % MODULUS)
 end
-ModuloNumber(n::Int) =
-    ModuloNumber(Dict([factor => n % factor for factor in [2,3,5,7,11,13,17,19,23]]))
 
-Base.:+(x::ModuloNumber, y::Int) = ModuloNumber(Dict([factor => (x.number[factor] + y) % factor for factor in keys(x.number)]))
-Base.:*(x::ModuloNumber, y::Int) = ModuloNumber(Dict([factor => (x.number[factor] * y) % factor for factor in keys(x.number)]))
-Base.:+(x::ModuloNumber, y::ModuloNumber) = ModuloNumber(Dict([factor => (x.number[factor] + y.number[factor]) % factor for factor in keys(x.number)]))
-Base.:*(x::ModuloNumber, y::ModuloNumber) = ModuloNumber(Dict([factor => (x.number[factor] * y.number[factor]) % factor for factor in keys(x.number)]))
-Base.:÷(x::ModuloNumber, y::Int) = ModuloNumber(Dict([factor => ((x.number[factor]+factor) ÷ y) % factor for factor in keys(x.number)]))
-Base.:%(x::ModuloNumber, y::Int) = x.number[y]
+Base.:+(x::ModuloNumber, y) = ModuloNumber(x.number + y)
+Base.:*(x::ModuloNumber, y) = ModuloNumber(x.number * y)
+Base.:+(x::ModuloNumber, y::ModuloNumber) = x + y.number
+Base.:*(x::ModuloNumber, y::ModuloNumber) = x * y.number
+Base.:÷(x::ModuloNumber, y) = y == 1 ? x : (1/0)
+Base.:%(x::ModuloNumber, y) = x.number % y
 Base.convert(::Type{ModuloNumber}, n::Int) = ModuloNumber(n)
 
 mutable struct Monkey{T}

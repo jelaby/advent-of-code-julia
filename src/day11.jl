@@ -17,9 +17,23 @@ end
 Operation(operator::AbstractString, getter::AbstractString) =
     Operation(operatorFor(Val(Symbol(operator))), getterFor(getter))
 
+struct ModuloNumber
+    number::Dict{Int,Int}
+end
+ModuloNumber(n::Int) =
+    ModuloNumber(Dict([factor => n % factor for factor in [2,3,5,7,11,13,17,19,23,999]]))
+
+Base.:+(x::ModuloNumber, y::Int) = ModuloNumber(Dict([factor => (x.number[factor] + y) % factor for factor in keys(x.number)]))
+Base.:*(x::ModuloNumber, y::Int) = ModuloNumber(Dict([factor => (x.number[factor] * y) % factor for factor in keys(x.number)]))
+Base.:+(x::ModuloNumber, y::ModuloNumber) = ModuloNumber(Dict([factor => (x.number[factor] + y.number[factor]) % factor for factor in keys(x.number)]))
+Base.:*(x::ModuloNumber, y::ModuloNumber) = ModuloNumber(Dict([factor => (x.number[factor] * y.number[factor]) % factor for factor in keys(x.number)]))
+Base.:÷(x::ModuloNumber, y::Int) = ModuloNumber(Dict([factor => ((x.number[factor]+factor) ÷ y) % factor for factor in keys(x.number)]))
+Base.:%(x::ModuloNumber, y::Int) = x.number[y]
+Base.convert(::Type{ModuloNumber}, n::Int) = ModuloNumber(n)
+
 mutable struct Monkey
     const number::Int
-    const items::Vector{Int}
+    const items::Vector{ModuloNumber}
     const operation::Operation
     const factor::Int
     const trueTarget::Int
@@ -52,9 +66,9 @@ parseMonkey(lines) =
 
 parseMonkeys(lines) = [parseMonkey(lines[l:l+5]) for l in 1:7:length(lines)]
 
-function turn(monkey, monkeys)
+function turn(monkey, monkeys, relief = 3)
     for item in monkey.items
-        item = monkey.operation.operator(item, monkey.operation.getter(item)) ÷ 3
+        item = monkey.operation.operator(item, monkey.operation.getter(item)) ÷ relief
         monkey.inspectionCount += 1
         if (item % monkey.factor) == 0
             push!(monkeys[monkey.trueTarget+1].items, item)
@@ -65,15 +79,15 @@ function turn(monkey, monkeys)
     empty!(monkey.items)
 end
 
-function round(monkeys)
+function round(monkeys, relief = 3)
     for monkey in monkeys
-        turn(monkey, monkeys)
+        turn(monkey, monkeys, relief)
     end
 end
 
-function rounds(monkeys, number)
+function rounds(monkeys, number, relief = 3)
     for i in 1:number
-        round(monkeys)
+        round(monkeys, relief)
     end
     return @show monkeys
 end
@@ -83,6 +97,13 @@ part1(lines) = parseMonkeys(lines) |>
     monkeys -> sort!(monkeys, by=monkey -> monkey.inspectionCount, rev=true) |>
     monkeys -> monkeys[1].inspectionCount * monkeys[2].inspectionCount
 
-@test part1(example1) == 10605
+part2(lines) = parseMonkeys(lines) |>
+    monkeys -> rounds(monkeys, 10000, 1) |>
+    monkeys -> sort!(monkeys, by=monkey -> monkey.inspectionCount, rev=true) |>
+    monkeys -> monkeys[1].inspectionCount * monkeys[2].inspectionCount
+
+#@test part1(example1) == 10605
+@test part2(example1) == 2713310158
 
 @time println(part1(lines))
+@time println(part2(lines))

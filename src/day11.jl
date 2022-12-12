@@ -31,16 +31,16 @@ Base.:÷(x::ModuloNumber, y::Int) = ModuloNumber(Dict([factor => ((x.number[fact
 Base.:%(x::ModuloNumber, y::Int) = x.number[y]
 Base.convert(::Type{ModuloNumber}, n::Int) = ModuloNumber(n)
 
-mutable struct Monkey
+mutable struct Monkey{T}
     const number::Int
-    const items::Vector{ModuloNumber}
+    const items::Vector{T}
     const operation::Operation
     const factor::Int
     const trueTarget::Int
     const falseTarget::Int
     inspectionCount::Int
 end
-Monkey(number, items, operation, factor, trueTarget, falseTarget) = Monkey(number, items, operation, factor, trueTarget, falseTarget, 0)
+Monkey{T}(number, items, operation, factor, trueTarget, falseTarget) where T = Monkey{T}(number, items, operation, factor, trueTarget, falseTarget, 0)
 
 operatorFor(::Val{:*}) = (a,b) -> a * b
 operatorFor(::Val{:+}) = (a,b) -> a + b
@@ -54,8 +54,8 @@ function getterFor(getter)
     end
 end
 
-parseMonkey(lines) =
-    Monkey(
+parseMonkey(::Type{T}, lines) where T =
+    Monkey{T}(
         match(r"Monkey (\d+):", lines[1]).captures[1] |> x -> parse(Int, x),
         match(r"Starting items: ((?:\d+)(?:, *\d+)*)", lines[2]).captures[1] |> x -> split(x, r", *") |> x -> parse.(Int, x),
         Operation(match(r"Operation: new = old ([+*]) (\d+|old)", lines[3]).captures...),
@@ -64,7 +64,7 @@ parseMonkey(lines) =
         match(r"If false: throw to monkey (\d+)", lines[6]).captures[1] |> x -> parse(Int, x)
     )
 
-parseMonkeys(lines) = [parseMonkey(lines[l:l+5]) for l in 1:7:length(lines)]
+parseMonkeys(::Type{T}, lines) where T = [parseMonkey(T, lines[l:l+5]) for l in 1:7:length(lines)]
 
 function turn(monkey, monkeys, relief = 3)
     for item in monkey.items
@@ -89,20 +89,20 @@ function rounds(monkeys, number, relief = 3)
     for i in 1:number
         round(monkeys, relief)
     end
-    return @show monkeys
+    return monkeys
 end
 
-part1(lines) = parseMonkeys(lines) |>
+part1(lines) = parseMonkeys(Int, lines) |>
     monkeys -> rounds(monkeys, 20) |>
     monkeys -> sort!(monkeys, by=monkey -> monkey.inspectionCount, rev=true) |>
     monkeys -> monkeys[1].inspectionCount * monkeys[2].inspectionCount
 
-part2(lines) = parseMonkeys(lines) |>
+part2(lines) = parseMonkeys(ModuloNumber, lines) |>
     monkeys -> rounds(monkeys, 10000, 1) |>
     monkeys -> sort!(monkeys, by=monkey -> monkey.inspectionCount, rev=true) |>
     monkeys -> monkeys[1].inspectionCount * monkeys[2].inspectionCount
 
-#@test part1(example1) == 10605
+@test part1(example1) == 10605
 @test part2(example1) == 2713310158
 
 @time println(part1(lines))

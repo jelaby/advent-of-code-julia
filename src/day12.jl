@@ -121,5 +121,30 @@ part1 = shortestJourney ∘ parseMap
 ]) == 31
 @test part1(example1) == 31
 
-println("Calculating...")
+function part2(lines; startHeight = 'a', endHeight = 'z')
+    map = parseMap(lines)
+
+    start = findStart(map)
+    finish = findEnd(map)
+    map[start] = startHeight
+    map[finish] = endHeight
+
+    shortest = typemax(Int)
+    for i in CartesianIndices(map)
+        if map[i] == 'a'
+            candidate = shortestJourney(map, i, finish)
+            if candidate !== nothing && candidate < shortest
+                shortest = candidate
+            end
+        end
+    end
+
+    return shortest
+end
+
+@test part2(example1) == 29
+
+println("Calculating part 1...")
 @time println(part1(lines))
+println("Calculating part 2...")
+@time println(part2(lines))

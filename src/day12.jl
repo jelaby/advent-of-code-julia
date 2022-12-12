@@ -27,41 +27,52 @@ function blankResults(map, from)
     return results
 end
 
-function shortestJourney(map, from, to, height='z', results = blankResults(map, from), best=length(map))
-        #show map, from, to, height, results, best
-    if !checkbounds(Bool, map, to)
-        #show :outofbounds, results
-        return UNREACHABLE
-    elseif map[to] + 1 < height
-        #show :unreachable,results,to,map[to],height
-        return UNREACHABLE
-    elseif results[to] == CALCULATING
-        #show :loop,results,to
-        return CALCULATING
-    elseif results[to] == DEAD_END
-        #show :deadend, results
-        return DEAD_END
-    elseif results[to] == UNVISITED
-        results[to] = CALCULATING
-        cost = minimum([shortestJourney(map, from, to+direction, map[to], results) for direction in [RIGHT, DOWN, LEFT, UP]])
-        if cost == CALCULATING
-            cost = UNVISITED
-        elseif cost == UNREACHABLE
-            cost = DEAD_END
-        elseif cost == UNVISITED
-            cost = UNVISITED
-        elseif cost == DEAD_END
-            cost = DEAD_END
-        else
-            cost = cost + 1
+h(start, finish) = sum(abs.(Tuple(start-finish)))
+
+function shortestJourney(map, start, finish)
+    openSet = Set([start])
+
+    cameFrom = Dict{CartesianIndex, CartesianIndex}()
+
+    gScore = fill(typemax(Int), size(map))
+    gScore[start] = 0
+
+    fScore = fill(typemax(Int), size(map))
+    fScore[start] = h(start, finish)
+
+    while !isempty(openSet)
+
+         current = undef
+         currentScore = typemax(Int)
+         for candidate in openSet
+            if fScore[candidate] < currentScore
+                current = candidate
+                currentScore = fScore[candidate]
+            end
         end
-        results[to] = cost
-        #show :calculate, results,to,cost
-        return cost
-    else
-        #show :cached,results
-        return results[to]
+
+        if current == finish
+            return gScore[finish]
+        end
+
+        delete!(openSet, current)
+
+        for direction in [LEFT, RIGHT, UP, DOWN]
+            neighbour = current + direction
+
+            if checkbounds(Bool, map, neighbour) && map[current] + 1 >= map[neighbour]
+
+                tentativeGScore = gScore[current] + 1
+                if tentativeGScore < gScore[neighbour]
+                    cameFrom[neighbour] = current
+                    gScore[neighbour] = tentativeGScore
+                    fScore[neighbour] = tentativeGScore + h(neighbour, finish)
+                    push!(openSet, neighbour)
+                end
+            end
+        end
     end
+
 end
 
 function shortestJourney(map; startHeight='a', endHeight='z')
@@ -70,12 +81,11 @@ function shortestJourney(map; startHeight='a', endHeight='z')
     map[start] = startHeight
     map[finish] = endHeight
     @show map, start, finish
-    return shortestJourney(map, start, finish, endHeight)
+    return shortestJourney(map, start, finish)
 end
 
 findStart(map) = findfirst(c -> c=='S', map)
 findEnd(map) = findfirst(c -> c=='E', map)
-
 
 part1 = shortestJourney ∘ parseMap
 

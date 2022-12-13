@@ -5,6 +5,7 @@ day13:
 - Date: 2022-13-13
 =#
 using Test
+using Base.Iterators
 
 lines = open(readlines, "src/day13-input.txt")
 example1 = open(readlines, "src/day13-example-1.txt")
@@ -40,4 +41,17 @@ part1 = sum ∘ orderedIndices ∘ parseLines
 
 @test part1(example1) == 13
 
+
+parseAllSignals(lines) = collect(flatten([flatten(parseLines(lines)), [ [ [2] ], [ [6] ] ] ]))
+
+
+part2(lines) = parseAllSignals(lines) |>
+    signals -> sort!(signals; lt=(a,b)->compare(a,b)<0) |>
+    signals -> findall(a -> a in [[[2]],[[6]]], signals) |>
+    indices -> *(indices...)
+
+@test part2(example1) == 140
+
+
 @time println(part1(lines))
+@time println(part2(lines))

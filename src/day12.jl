@@ -16,20 +16,9 @@ const LEFT = CartesianIndex((-1,0))
 const UP = CartesianIndex((0,-1))
 const DOWN = CartesianIndex((0,1))
 
-const UNVISITED = 10000002
-const CALCULATING = 10000004
-const UNREACHABLE = 10000008
-const DEAD_END = 10000006
-
-function blankResults(map, from)
-    results = fill(UNVISITED, size(map))
-    results[from] = 0
-    return results
-end
-
-h(start, finish) = sum(abs.(Tuple(start-finish)))
-
 function shortestJourney(map, start, finish)
+    h(start, finish) = sum(abs.(Tuple(start-finish)))
+
     openSet = Set([start])
 
     cameFrom = Dict{CartesianIndex, CartesianIndex}()
@@ -80,7 +69,6 @@ function shortestJourney(map; startHeight='a', endHeight='z')
     finish = findEnd(map)
     map[start] = startHeight
     map[finish] = endHeight
-    @show map, start, finish
     return shortestJourney(map, start, finish)
 end
 

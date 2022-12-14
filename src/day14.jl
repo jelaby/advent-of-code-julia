@@ -17,6 +17,17 @@ const SAND = 'o'
 parseVertex(vertex) = split.(vertex, ",") |> coords -> parse.(Int, coords) |> Tuple |> CartesianIndex
 parseLines(lines) = [split.(line, " -> ") |> vertices -> parseVertex.(vertices) for line in lines]
 
+function addFloor!(lines)
+    vertices = flatten(lines)
+    minx = minimum(vertex -> vertex[1], vertices)
+    miny = minimum(vertex -> vertex[2], vertices)
+    maxx = maximum(vertex -> vertex[1], vertices)
+    maxy = maximum(vertex -> vertex[2], vertices)
+
+    push!(lines, [CartesianIndex(1,maxy+2),CartesianIndex(maxx+maxy,maxy+2)])
+
+    return lines
+end
 
 function drawCave(lines)
     vertices = flatten(lines)
@@ -63,6 +74,16 @@ function simulateSand!(cave, sandStart=CartesianIndex(500,0))
     return count
 end
 
+function simulateSand!(cave, sandStart=CartesianIndex(500,0))
+    escaped = false
+    count = -1
+    while !escaped
+        count += 1
+        escaped = simulateGrain!(cave, sandStart);
+    end
+    return count
+end
+
 const DOWN = CartesianIndex(0,1)
 const DOWNLEFT = CartesianIndex(-1,1)
 const DOWNRIGHT = CartesianIndex(1,1)
@@ -77,9 +98,11 @@ function simulateGrain!(cave, sandStart)
             sand += DOWNLEFT
         elseif cave[sand + DOWNRIGHT] == AIR
             sand += DOWNRIGHT
-        else
+        elseif checkbounds(Bool, cave, sand)
             cave[sand] = SAND
             return false
+        else
+            return true
         end
 
         if !checkbounds(Bool, cave, sand+DOWN)
@@ -94,7 +117,10 @@ printCave(cave) = println.(String.(eachcol(cave)))
 drawCave(parseLines(example1))
 
 part1 = simulateSand! ∘ drawCave ∘ parseLines
+part2 = (n->n+1) ∘ simulateSand! ∘ drawCave ∘ addFloor! ∘ parseLines
 
 @test part1(example1) == 24
+@test part2(example1) == 93
 
 @time println(part1(lines))
+@time println(part2(lines))

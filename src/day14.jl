@@ -36,15 +36,10 @@ function drawCave(lines)
     maxx = maximum(vertex -> vertex[1], vertices)
     maxy = maximum(vertex -> vertex[2], vertices)
 
-    @show (minx,miny),(maxx,maxy)
-
     cave = fill(AIR, maxx, maxy)
-
-    @show lines
 
     for line in lines
         for edge in [line[i:i+1] for i in 1:(length(line)-1)]
-            @show edge
             if edge[1][1] != edge[2][1]
                 y = edge[1][2]
                 for x in edge[1][1]:sign(edge[2][1]-edge[1][1]):edge[2][1]
@@ -61,8 +56,6 @@ function drawCave(lines)
 
     return cave
 end
-
-const DOWN = CartesianIndex(0,1)
 
 function simulateSand!(cave, sandStart=CartesianIndex(500,0))
     escaped = false

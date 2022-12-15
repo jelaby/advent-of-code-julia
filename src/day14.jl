@@ -70,9 +70,10 @@ end
 function simulateSand!(cave, sandStart=CartesianIndex(500,0))
     escaped = false
     count = -1
+    lastPath = [sandStart]
     while !escaped
         count += 1
-        escaped = simulateGrain!(cave, sandStart);
+        escaped = simulateGrain!(cave, lastPath);
     end
     return count
 end
@@ -81,9 +82,10 @@ const DOWN = CartesianIndex(0,1)
 const DOWNLEFT = CartesianIndex(-1,1)
 const DOWNRIGHT = CartesianIndex(1,1)
 
-function simulateGrain!(cave, sandStart)
-    sand = sandStart
+function simulateGrain!(cave, lastPath)
+    sand = pop!(lastPath)
     while true
+        push!(lastPath, sand)
 
         if cave[sand + DOWN] == AIR
             sand += DOWN
@@ -93,6 +95,7 @@ function simulateGrain!(cave, sandStart)
             sand += DOWNRIGHT
         elseif checkbounds(Bool, cave, sand)
             cave[sand] = SAND
+            pop!(lastPath)
             return false
         else
             return true

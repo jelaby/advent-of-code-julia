@@ -23,69 +23,51 @@ parseSensor(line) = match(r"Sensor at x=(-?\d+), y=(-?\d+): closest beacon is at
     numbers -> parse.(Int, numbers) |>
     numbers -> Sensor(numbers...)
 
-struct UnitRanges
-    a::Union{UnitRanges,UnitRange}
-    b::UnitRange
+struct Range
+    start::Int
+    stop::Int
 end
-UnitRanges(a::UnitRange, b::UnitRanges) = UnitRanges(b,a)
-UnitRanges(a::UnitRanges, b::UnitRanges) = UnitRanges(UnitRanges(UnitRanges(a.a,a.b),b.a),b.b)
 
-function Base.union(a::UnitRange, b::UnitRanges)
-    aa = a ∪ b.a
-    ab = a ∪ b.b
+struct Row
+    ranges::Vector{Range}
+    Row(ranges) = new(sort(ranges, by=r->r.start))
+end
+Row() = Row([])
 
-    if aa isa UnitRange
-        return aa ∪ b.b
-    elseif ab isa UnitRange
-        return ab ∪ b.a
-    else
-        return UnitRanges(aa,b)
+Base.push!(::Nothing, range::UnitRange) = Base.push!(Row(), range)
+Base.push!(row::Row, range::UnitRange) = Base.push!(row, Range(range.start, range.stop))
+function Base.push!(row::Row, range::Range)
+    if isempty(row.ranges)
+        push!(row.ranges, range)
+        return row
     end
-end
-Base.union(a::UnitRanges, b::UnitRange) = union(b,a)
 
-Base.union(a::UnitRanges, b::UnitRanges) = a.a ∪ b ∪ a.b
+    i = Base.Sort.searchsortedfirst(row.ranges, range, by=r->r.start)
 
-
-function Base.union(a::UnitRange, b::UnitRange)
-    if a.start <= b.start && a.stop >= b.stop
-        return a;
-    elseif b.start <= a.start && b.stop >= a.stop
-        return b;
-    elseif (a.start <= b.start && a.stop >= b.stop) ||
-        (b.start <= a.start && b.stop >= a.stop) ||
-        (a.stop + 1 == b.start) ||
-        (b.stop + 1 == a.start)
-        return min(a.start,b.start):max(a.stop,b.stop)
-    else
-        return UnitRanges(a,b)
+    if i == 1
+        other = row.ranges[1]
+        row.ranges[1]=range
+        range = other
+        i+=1
     end
-end
-@test union(1:3,4:6) == 1:6
-@test union(1:3,5:6) == UnitRanges(1:3,5:6)
-@test (1:3) ∪ (5:6) ∪ (4:4) == 1:6
 
-function Base.setdiff(a::UnitRange, b::UnitRange)
-    if a.start <= b.start && a.stop >= b.stop
-        return UnitRanges(a.start:b.start-1, b.stop+1:a.stop)
-    elseif b.start <= a.start && b.stop >= a.stop
-        return Nothing
-    elseif a.start <= b.start && a.stop >= b.start
-        return a.start:b.start-1
-    elseif b.start <= a.start && b.stop >= a.start
-        return b.stop+1:a.stop
+    other = row.ranges[i-1]
+
+
+    if other.stop >= range.stop
+        # new entry is subset of existing
+    elseif other.stop + 1 >= range.start
+        # new entry abuts previous
+        row.ranges[i-1] = Range(other.start, range.stop)
     else
-        return a
+        insert!(row.ranges, i, range)
     end
+
+    return row
 end
 
-function Base.setdiff(a::UnitRange, b::UnitRanges)
-    return setdiff(setdiff(a,b.a),b.b)
-end
-
-function Base.setdiff(a::UnitRanges, b::UnitRanges)
-    return setdiff(a.a,b) ∪ setdiff(a.b,b)
-end
+Base.length(range::Range) = range.stop + 1 - range.start
+Base.length(row::Row) = sum(range -> length(range), row.ranges)
 
 #=
    #
@@ -98,13 +80,13 @@ end
 function clearCoords(sensor::Sensor, row)
     offset = abs(sensor.position[2] - row)
     if offset > clearDistance(sensor)
-        return []
+        return nothing
     else
         width = clearDistance(sensor) - offset
-        return sensor.position[1]-width:sensor.position[1]+width
+        return Range(sensor.position[1]-width,sensor.position[1]+width)
     end
 end
-@test clearCoords(Sensor(0,0,3,0), 0) == -3:3
+@test clearCoords(Sensor(0,0,3,0), 0) == Range(-3,3)
 
 beaconsOnRow(sensors, row) = filter([s.beacon for s in sensors]) do beacon
     beacon[2] == row
@@ -113,7 +95,18 @@ beaconPositionsOnRow(sensors, row) = Set([beacon[1] for beacon in beaconsOnRow(s
 @test beaconPositionsOnRow([Sensor(0,0,0,0), Sensor(0,0,14,1), Sensor(0,0,17,0)], 0) == Set([0,17])
 @test beaconPositionsOnRow([Sensor(0,0,0,0), Sensor(0,0,14,1), Sensor(0,0,17,0)], 1) == Set([14])
 
-clearCoordsOrBeacons(sensors, row) = union(clearCoords.(sensors, row)...)
+combine(::Nothing,::Nothing) = nothing
+combine(::Nothing, range) = range
+combine(range, ::Nothing) = range
+combine(a::Range, b::Range) = combine(Row([a]), b)
+combine(a::Row, b::Range) = push!(a,b)
+clearCoordsOrBeacons(sensors, row) = foldl(combine, clearCoords.(sensors, row), init=Row())
+
+@test combine(nothing,nothing)===nothing
+@test combine(Range(1,3),nothing)==Range(1,3)
+#@test combine(Range(1,3),Range(2,6))==Row([Range(1,6)])
+#@test combine(Range(1,3),Range(4,6))==Row([Range(1,6)])
+#@test combine(Range(1,3),Range(5,6))==Row([Range(1,3),Range(5,6)])
 
 parseSensors(lines) = parseSensor.(lines) |> sensors -> sort!(sensors, by=sensor->sensor.position[1])
 
@@ -121,11 +114,25 @@ parseSensors(lines) = parseSensor.(lines) |> sensors -> sort!(sensors, by=sensor
 tuningFrequency(gap) = gap[1]*4000000 + gap[2]
 
 
-function findGap(sensors, maxC)
-    for row in 0:maxC
-        gaps = setdiff(0:maxC, clearCoordsOrBeacons(sensors,row))
-        if !isempty(gaps)
-            return (first(gaps),row)
+function findGap(row::Row, minPosition, maxPosition)
+    for range in row.ranges
+        if range.start > minPosition
+            return range.start - 1
+        elseif range.stop < maxPosition
+            return range.stop + 1
+        end
+    end
+    return nothing
+end
+
+function findGap(sensors::Vector{Sensor}, maxC)
+    for i in 0:maxC
+        row = clearCoordsOrBeacons(sensors,i)
+
+        gap = findGap(row, 0, maxC)
+
+        if gap !== nothing
+            return (gap,i)
         end
     end
 end
@@ -134,7 +141,7 @@ end
 part1(lines, row) = parseSensors(lines) |> sensors -> length(clearCoordsOrBeacons(sensors, row)) - length(beaconPositionsOnRow(sensors,row))
 part2(lines, maxC) = parseSensors(lines) |> sensors -> findGap(sensors, maxC) |> gap -> tuningFrequency(gap)
 
-@test 14 ∉ parseSensors(example1) |> sensors -> clearCoordsOrBeacons(sensors, 11)
+@show parseSensors(example1) |> sensors -> clearCoordsOrBeacons(sensors, 11)
 
 @test part1(example1, 10) == 26
 @test (parseSensors(example1) |> sensors -> findGap(sensors, 20)) == (14,11)

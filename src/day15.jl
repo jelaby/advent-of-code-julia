@@ -27,12 +27,14 @@ struct Range
     start::Int
     stop::Int
 end
+Base.:(==)(a::Range,b::Range) = a.start == b.start && a.stop == b.stop
 
 struct Row
     ranges::Vector{Range}
     Row(ranges) = new(sort(ranges, by=r->r.start))
 end
 Row() = Row([])
+Base.:(==)(a::Row,b::Row) = a.ranges == b.ranges
 
 Base.push!(::Nothing, range::UnitRange) = Base.push!(Row(), range)
 Base.push!(row::Row, range::UnitRange) = Base.push!(row, Range(range.start, range.stop))
@@ -45,22 +47,25 @@ function Base.push!(row::Row, range::Range)
     i = Base.Sort.searchsortedfirst(row.ranges, range, by=r->r.start)
 
     if i == 1
-        other = row.ranges[1]
-        row.ranges[1]=range
-        range = other
-        i+=1
+        insert!(row.ranges, i, range)
+    else
+        other = row.ranges[i-1]
+
+        if other.stop >= range.stop
+            # new entry is subset of existing
+        elseif other.stop + 1 >= range.start
+            # new entry abuts previous
+            row.ranges[i-1] = Range(other.start, range.stop)
+            i -= 1
+        else
+            insert!(row.ranges, i, range)
+        end
     end
 
-    other = row.ranges[i-1]
-
-
-    if other.stop >= range.stop
-        # new entry is subset of existing
-    elseif other.stop + 1 >= range.start
-        # new entry abuts previous
-        row.ranges[i-1] = Range(other.start, range.stop)
-    else
-        insert!(row.ranges, i, range)
+    # new entry abuts next one(s)
+    while i+1 <= length(row.ranges) && row.ranges[i].stop + 1 >= row.ranges[i+1].start
+        row.ranges[i] = Range(row.ranges[i].start, max(row.ranges[i].stop, row.ranges[i+1].stop))
+        popat!(row.ranges, i+1)
     end
 
     return row
@@ -104,21 +109,33 @@ clearCoordsOrBeacons(sensors, row) = foldl(combine, clearCoords.(sensors, row), 
 
 @test combine(nothing,nothing)===nothing
 @test combine(Range(1,3),nothing)==Range(1,3)
-#@test combine(Range(1,3),Range(2,6))==Row([Range(1,6)])
-#@test combine(Range(1,3),Range(4,6))==Row([Range(1,6)])
-#@test combine(Range(1,3),Range(5,6))==Row([Range(1,3),Range(5,6)])
+@test combine(Range(1,3),Range(2,6))==Row([Range(1,6)])
+@test combine(Range(1,3),Range(4,6))==Row([Range(1,6)])
+@test combine(Range(1,3),Range(5,6))==Row([Range(1,3),Range(5,6)])
 
-parseSensors(lines) = parseSensor.(lines) |> sensors -> sort!(sensors, by=sensor->sensor.position[1])
+@test combine(Row([Range(100,110),Range(120,130),Range(140,150)]), Range(99,151)) == Row([Range(99,151)])
+@test combine(Row([Range(100,110),Range(120,130),Range(140,150)]), Range(99,150)) == Row([Range(99,150)])
+@test combine(Row([Range(100,110),Range(120,130),Range(140,150)]), Range(99,149)) == Row([Range(99,150)])
+@test combine(Row([Range(100,110),Range(120,130),Range(140,150)]), Range(100,149)) == Row([Range(100,150)])
+@test combine(Row([Range(100,110),Range(120,130),Range(140,150)]), Range(101,149)) == Row([Range(100,150)])
+@test combine(Row([Range(100,110),Range(120,130),Range(140,150)]), Range(101,151)) == Row([Range(100,151)])
+
+parseSensors(lines) = parseSensor.(lines) |> sensors -> sort!(sensors, lt=(a,b) -> a.position[1]<b.position[1] || a.position[2]<b.position[2])
 
 
-tuningFrequency(gap) = gap[1]*4000000 + gap[2]
+function tuningFrequency(gap)
+    @show gap
+    return gap[1]*4000000 + gap[2]
+end
 
 
 function findGap(row::Row, minPosition, maxPosition)
     for range in row.ranges
         if range.start > minPosition
+            @show row
             return range.start - 1
         elseif range.stop < maxPosition
+            @show row
             return range.stop + 1
         end
     end

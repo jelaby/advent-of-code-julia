@@ -18,17 +18,8 @@ struct Valve
     targets::Vector{AbstractString}
 end
 
-isextra(valve::Valve) = isextra(valve.name)
-isextra(valve::AbstractString) = match(r"^\d+$", valve) !== nothing
-extraValve(valve::Valve) = extraValve(valve.name)
-function extraValve(valve::AbstractString)
-    if isextra(valve)
-        number = parse(Int,valve)
-        Valve(string(number+1), 0, [valve,string(number+2)])
-    else
-        Valve("1",0,["2"])
-    end
-end
+const NO_VALVE_NAME = "NONE"
+const NO_VALVE = Valve(NO_VALVE_NAME,0,[])
 
 parseValve(line) = match(r"Valve (..) has flow rate=(\d+); tunnels? leads? to valves? (.*)", @show line).captures |>
     parts -> Valve(parts[1], parse(Int,parts[2]), split(parts[3],", "))
@@ -53,23 +44,22 @@ function neighbours(valves)
     return (current,cameFrom) -> begin
         result = setdiff(allValves, pathhere(current, cameFrom))
         if isempty(result)
-            extra = extraValve(current)
-            valves[extra.name] = extra
-            return [extra.name]
+            return [NO_VALVE_NAME]
+        else
+            return result
         end
-        return result
     end
 end
 
 @memoize function movetime(valves, start, finish)
     return AoC.astar(start,
-        (current,_) -> get(valves, current, EXTRA).targets,
+        (current,_) -> valves[current].targets,
         (current,_) -> current==finish,
         (_,_) -> 1,
         (current,neighbour,_)->1).g + 1
 end
 
-function movetimehere(valves,current::T,cameFrom) where T
+function movetimehere(valves,current,cameFrom)
     path = pathhere(current,cameFrom)
     result = 0
     for i in 1:length(path)-1
@@ -79,20 +69,20 @@ function movetimehere(valves,current::T,cameFrom) where T
 end
 
 function isfinish(valves)
-    return (current,cameFrom) -> movetimehere(valves,current,cameFrom) >= 30
+    return (current,cameFrom) -> current === NO_VALVE_NAME || movetimehere(valves,current,cameFrom) >= 30
 end
 
 function heuristic(valves)
-    return (current, cameFrom) -> typemin(Int)
+    maxRelease=sum([valve.second.flowRate for valve in valves])
+    return (current, cameFrom) -> typemin(Int) + (current == NO_VALVE_NAME ? 0 : maxRelease - valves[current].flowRate)
 end
-
-const EXTRA = Valve("EXTRA", 0, [])
 
 # the amount saved while covering the distance, for all the closed valves
 function distance(valves)
-    return (current,neighbour,camefrom) -> begin
-        @show current,neighbour,camefrom
-        return @show movetime(valves,current,neighbour) * -sum([get(valves,valve,EXTRA).flowRate for valve in pathhere(current,camefrom)])
+    return (current,neighbour,cameFrom) -> begin
+        time = neighbour === NO_VALVE_NAME ? 30-movetimehere(valves,current,cameFrom) : movetime(valves,current,neighbour)
+        @show current,neighbour,cameFrom,time
+        return time * -sum([valves[valve].flowRate for valve in pathhere(current,cameFrom)])
     end
 end
 

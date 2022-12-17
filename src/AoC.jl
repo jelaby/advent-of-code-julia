@@ -55,12 +55,12 @@ module AoC
 
         cameFrom = Dict{T, T}()
 
-        initialFScore = heuristic(start);
+        initialFScore = heuristic(start, cameFrom)
         H = typeof(initialFScore)
         defaultFScore = typemax(H)
         defaultGScore = typemax(H)
 
-        fScore = Dict{T,H}(start => heuristic(start))
+        fScore = Dict{T,H}(start => initialFScore)
 
         gScore = Dict{T,H}(start => zero(H))
 
@@ -90,7 +90,7 @@ module AoC
                 if tentativeGScore < g(neighbour)
                     cameFrom[neighbour] = current
                     gScore[neighbour] = tentativeGScore
-                    fScore[neighbour] = tentativeGScore + heuristic(neighbour)
+                    fScore[neighbour] = tentativeGScore + heuristic(neighbour, cameFrom)
                     push!(openSet, neighbour)
                 end
             end

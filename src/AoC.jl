@@ -13,12 +13,7 @@ julia>
 """
 module AoC
 
-    export day
-    export lines, exampleLines
-    export charMap
-    export intMap
-    export ints
-    export parseLine, lineParser
+    export astar
 
     """ Parse each line of the input as an integer """
     ints(lines::Array{<:AbstractString}) = parse.(Int, lines)
@@ -52,5 +47,53 @@ module AoC
         ll = lines(day)
         show(@time f1(ll))
         show(@time f2(ll))
+    end
+
+    function astar(start::T, neighbours, isfinish, heuristic, distance) where T
+
+        openSet = Set{T}([start])
+
+        cameFrom = Dict{T, T}()
+
+        initialFScore = heuristic(start);
+        H = typeof(initialFScore)
+        defaultFScore = typemax(H)
+        defaultGScore = typemax(H)
+
+        fScore = Dict{T,H}(start => heuristic(start))
+
+        gScore = Dict{T,H}(start => zero(H))
+
+        f(node) = get(fScore,node,defaultFScore)
+        g(node) = get(gScore,node,defaultGScore)
+
+        while !isempty(openSet)
+
+             current = undef
+             currentScore = typemax(H)
+             for candidate in openSet
+                if f(candidate) < currentScore
+                    current = candidate
+                    currentScore = f(current)
+                end
+            end
+
+            if isfinish(current,cameFrom)
+                return @show (;g=g(current),current,cameFrom)
+            end
+
+            delete!(openSet, current)
+
+            for neighbour in neighbours(current,cameFrom)
+
+                tentativeGScore = gScore[current] + distance(current, neighbour, cameFrom)
+                if tentativeGScore < g(neighbour)
+                    cameFrom[neighbour] = current
+                    gScore[neighbour] = tentativeGScore
+                    fScore[neighbour] = tentativeGScore + heuristic(neighbour)
+                    push!(openSet, neighbour)
+                end
+            end
+        end
     end
 end

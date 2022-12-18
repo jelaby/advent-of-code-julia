@@ -111,7 +111,7 @@ function totalReleased(valves, current, valvesToVisit=valvesWorthVisiting(valves
 end
 trCache = Dict()
 function totalReleased(valves, movements::Vector{Movement}, valvesToVisit, releaseRate, totalTime, pathHere; maxTime)
-    key = (objectid(valves),sort!(movements,by=m->m.target),valvesToVisit,releaseRate,totalTime,maxTime)
+    key = (objectid(valves),sort(movements,by=m->m.target),valvesToVisit,releaseRate,totalTime,maxTime)
     return get!(trCache, key) do
         return doTotalReleased(valves,movements,valvesToVisit,releaseRate,totalTime,pathHere;maxTime)
     end
@@ -159,10 +159,9 @@ function doTotalReleased(valves, movements::Vector{Movement}, valvesToVisit, rel
                 # exclude moving to a valve if that can't possibly help us
                 # by assuming that all valves will be opened with the next action
                 nextActionTime = max(0,minimum(m->m.time, newMovements))
-                optimisticFlowRate = releaseRate + sum(v->valves[v].flowRate, valvesToVisit) - valves[valve].flowRate
-                optimisticFlow = releaseRate * nextActionTime +
-                    optimisticFlowRate * (maxTime - 1 - totalTime - nextActionTime) +
-                    sum(m->valves[m.target].flowRate * (maxTime - totalTime - m.time), newMovements)
+                totalPeople = length(movements)
+                optimisticFlow = releaseRate * (maxTime-totalTime) +
+                    reduce((+), [sum(v->valves[v].flowRate, valvesToVisit[i:min(length(valvesToVisit), i+totalPeople-1)]) * (maxTime-totalTime-nextActionTime-2i) for i in 1:(min((maxTime-totalTime-nextActionTime-2) ÷ (2*totalPeople), length(valvesToVisit)))]; init=0)
                 if optimisticFlow < best
                     return best
                 end

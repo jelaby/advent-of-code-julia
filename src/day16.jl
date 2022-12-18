@@ -111,7 +111,7 @@ function totalReleased(valves, current, valvesToVisit=valvesWorthVisiting(valves
 end
 trCache = Dict()
 function totalReleased(valves, movements::Vector{Movement}, valvesToVisit, releaseRate, totalTime, pathHere; maxTime)
-    key = (objectid(valves),movements,valvesToVisit,releaseRate,totalTime,maxTime)
+    key = (objectid(valves),sort!(movements,by=m->m.target),valvesToVisit,releaseRate,totalTime,maxTime)
     return get!(trCache, key) do
         return doTotalReleased(valves,movements,valvesToVisit,releaseRate,totalTime,pathHere;maxTime)
     end

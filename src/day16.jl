@@ -93,9 +93,9 @@ function distance(valves)
     end
 end
 
-valvesWorthVisiting(valves) = sort(collect(filter(keys(valves)) do valve
+valvesWorthVisiting(valves) = sort!(collect(filter(keys(valves)) do valve
     valves[valve].flowRate > 0
-end), by=valve->valves[valve].flowRate)
+end), by=valve->-valves[valve].flowRate)
 
 struct Movement
     target::AbstractString
@@ -134,7 +134,7 @@ function doTotalReleased(valves, movements::Vector{Movement}, valvesToVisit, rel
 
             amountReleasedMoving = releaseRate * time
             amountReleasedAfterwards = totalReleased(valves,
-                collect([Movement(m.target, m.time - time) for m in movements]),
+                [Movement(m.target, m.time - time) for m in movements],
                 valvesToVisit,
                 releaseRate+extraFlow,
                 totalTime + time,
@@ -151,13 +151,24 @@ function doTotalReleased(valves, movements::Vector{Movement}, valvesToVisit, rel
             if isempty(valvesToVisit)
                 #@show :error, movements, releaseRate,totalTime,pathHere
             end
-            result = maximum(valvesToVisit) do valve
+            result = foldl(valvesToVisit; init=0) do best,valve
                 newMovements = copy(movements)
                 time = max(0, min(maxTime - totalTime, movetime(valves, movement.target, valve)))
                 newMovements[i] = Movement(valve, time)
 
+                # exclude moving to a valve if that can't possibly help us
+                # by assuming that all valves will be opened with the next action
+                nextActionTime = max(0,minimum(m->m.time, newMovements))
+                optimisticFlowRate = releaseRate + sum(v->valves[v].flowRate, valvesToVisit) - valves[valve].flowRate
+                optimisticFlow = releaseRate * nextActionTime +
+                    optimisticFlowRate * (maxTime - 1 - totalTime - nextActionTime) +
+                    sum(m->valves[m.target].flowRate * (maxTime - totalTime - m.time), newMovements)
+                if optimisticFlow < best
+                    return best
+                end
+
                 result = totalReleased(valves, newMovements, setdiff(valvesToVisit, [valve]), releaseRate, totalTime, [pathHere...,i=>valve]; maxTime)
-                return result
+                return max(best,result)
             end
             #@show :setup, movements, releaseRate,totalTime,pathHere, result
             return result

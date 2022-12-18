@@ -79,7 +79,7 @@ module AoC
             end
 
             if isfinish(current,cameFrom)
-                return @show (;g=g(current),current,cameFrom)
+                return (;g=g(current),current,cameFrom)
             end
 
             delete!(openSet, current)
@@ -95,5 +95,6 @@ module AoC
                 end
             end
         end
+        @show :wtf,start,isfinish
     end
 end

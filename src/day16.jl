@@ -79,25 +79,43 @@ end
 
 # the amount saved while covering the distance, for all the closed valves
 function distance(valves)
+    maxTotalReleasedPerMinute=sum([valve.second.flowRate for valve in valves])
+
     return (current,neighbour,cameFrom) -> begin
-        time = neighbour === NO_VALVE_NAME ? 30-movetimehere(valves,current,cameFrom) : movetime(valves,current,neighbour)
-        @show current,neighbour,cameFrom,time
-        return time * -sum([valves[valve].flowRate for valve in pathhere(current,cameFrom)])
+        @show current,neighbour,cameFrom
+        if neighbour === NO_VALVE_NAME
+            return 0
+        end
+        time = movetime(valves,current,neighbour)
+        totalReleasedPerMinute = sum([valves[valve].flowRate for valve in pathhere(current,cameFrom)])
+        @show current,neighbour,cameFrom,time,maxTotalReleasedPerMinute,totalReleasedPerMinute
+        return @show time * (maxTotalReleasedPerMinute-totalReleasedPerMinute)
     end
 end
 
-function cost(valves, start::T) where T
-    allValves = collect(keys(valves))
+valvesWorthVisiting(valves) = sort(collect(filter(keys(valves)) do valve
+    valves[valve].flowRate > 0
+end), by=valve->valves[valve].flowRate)
 
-    return AoC.astar(start,
-        neighbours(valves),
-        isfinish(valves),
-        heuristic(valves),
-        distance(valves))
+function totalReleased(valves, previous, valvesToVisit=valvesWorthVisiting(valves), releaseRate=0, totalTime=0, pathHere=[])
+    valvesToVisit = setdiff(valvesToVisit, [previous])
+    if totalTime >= 30
+        result = 0
+    elseif isempty(valvesToVisit)
+        result = (30-totalTime) * releaseRate
+    else
+        result = maximum(valvesToVisit) do valve
+            time = max(0, min(30 - totalTime, movetime(valves, previous, valve)))
+            amountReleasedMoving = releaseRate * time
+            amountReleasedAfterwards = totalReleased(valves, valve, valvesToVisit, releaseRate + valves[valve].flowRate, totalTime + time, [pathHere..., previous])
+            return amountReleasedMoving + amountReleasedAfterwards
+        end
+    end
+    return result
 end
 
 
-part1(lines) = parseValves(lines) |> valves -> cost(valves, "AA")
+part1(lines) = parseValves(lines) |> valves -> totalReleased(valves, "AA")
 
 
 @test part1(example1) == 1651

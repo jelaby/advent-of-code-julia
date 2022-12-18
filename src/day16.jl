@@ -167,7 +167,7 @@ function doTotalReleased(valves, movements::Vector{Movement}, valvesToVisit, rel
                     return best
                 end
 
-                result = totalReleased(valves, newMovements, setdiff(valvesToVisit, [valve]), releaseRate, totalTime, [pathHere...,i=>valve]; maxTime)
+                result = totalReleased(valves, newMovements, filter(v->v!=valve, valvesToVisit), releaseRate, totalTime, [pathHere...,i=>valve]; maxTime)
                 return max(best,result)
             end
             #@show :setup, movements, releaseRate,totalTime,pathHere, result

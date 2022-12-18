@@ -21,7 +21,7 @@ end
 const NO_VALVE_NAME = "NONE"
 const NO_VALVE = Valve(NO_VALVE_NAME,0,[])
 
-parseValve(line) = match(r"Valve (..) has flow rate=(\d+); tunnels? leads? to valves? (.*)", @show line).captures |>
+parseValve(line) = match(r"Valve (..) has flow rate=(\d+); tunnels? leads? to valves? (.*)", line).captures |>
     parts -> Valve(parts[1], parse(Int,parts[2]), split(parts[3],", "))
 parseValves(lines) = parseValve.(lines) |>
     valves -> Dict([valve.name => valve for valve in valves])

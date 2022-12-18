@@ -97,28 +97,81 @@ valvesWorthVisiting(valves) = sort(collect(filter(keys(valves)) do valve
     valves[valve].flowRate > 0
 end), by=valve->valves[valve].flowRate)
 
-function totalReleased(valves, previous, valvesToVisit=valvesWorthVisiting(valves), releaseRate=0, totalTime=0, pathHere=[])
-    valvesToVisit = setdiff(valvesToVisit, [previous])
-    if totalTime >= 30
-        result = 0
-    elseif isempty(valvesToVisit)
-        result = (30-totalTime) * releaseRate
+struct Movement
+    target::AbstractString
+    time::Int
+end
+
+hasArrived(m) = m.time<=0
+
+function totalReleased(valves, current, valvesToVisit=valvesWorthVisiting(valves); maxTime=30, totalPeople=1)
+    valvesToVisit=valvesWorthVisiting(valves)
+
+    return totalReleased(valves, fill(Movement(current,0), totalPeople), valvesToVisit, 0, 0, [:start]; maxTime)
+end
+trCache = Dict()
+function totalReleased(valves, movements::Vector{Movement}, valvesToVisit, releaseRate, totalTime, pathHere; maxTime)
+    key = (objectid(valves),movements,valvesToVisit,releaseRate,totalTime,maxTime)
+    return get!(trCache, key) do
+        return doTotalReleased(valves,movements,valvesToVisit,releaseRate,totalTime,pathHere;maxTime)
+    end
+end
+
+function doTotalReleased(valves, movements::Vector{Movement}, valvesToVisit, releaseRate, totalTime, pathHere; maxTime)
+
+    if totalTime >= maxTime
+        #@show :overtime,totalTime,maxTime,pathHere,0
+        return 0
+    elseif isempty(valvesToVisit) && all(hasArrived, movements)
+        result = (maxTime-totalTime) * releaseRate
+        #@show :complete,totalTime,releaseRate,pathHere,result
+        return result
     else
-        result = maximum(valvesToVisit) do valve
-            time = max(0, min(30 - totalTime, movetime(valves, previous, valve)))
+        if all(m->!hasArrived(m), movements) || isempty(valvesToVisit)
+            time = minimum(m->m.time, filter(m->!hasArrived(m), movements))
+
+            extraFlow = sum(m->valves[m.target].flowRate, filter(m->0 < m.time <= time, movements))
+
             amountReleasedMoving = releaseRate * time
-            amountReleasedAfterwards = totalReleased(valves, valve, valvesToVisit, releaseRate + valves[valve].flowRate, totalTime + time, [pathHere..., previous])
-            return amountReleasedMoving + amountReleasedAfterwards
+            amountReleasedAfterwards = totalReleased(valves,
+                collect([Movement(m.target, m.time - time) for m in movements]),
+                valvesToVisit,
+                releaseRate+extraFlow,
+                totalTime + time,
+                [pathHere...,:go];
+                maxTime)
+            result = amountReleasedMoving + amountReleasedAfterwards
+            #@show :movement, movements, releaseRate,totalTime,pathHere,result
+            return result
+
+        else
+            i = findfirst(hasArrived, movements)
+            movement = movements[i]
+
+            if isempty(valvesToVisit)
+                #@show :error, movements, releaseRate,totalTime,pathHere
+            end
+            result = maximum(valvesToVisit) do valve
+                newMovements = copy(movements)
+                time = max(0, min(maxTime - totalTime, movetime(valves, movement.target, valve)))
+                newMovements[i] = Movement(valve, time)
+
+                result = totalReleased(valves, newMovements, setdiff(valvesToVisit, [valve]), releaseRate, totalTime, [pathHere...,i=>valve]; maxTime)
+                return result
+            end
+            #@show :setup, movements, releaseRate,totalTime,pathHere, result
+            return result
         end
     end
-    return result
 end
 
 
 part1(lines) = parseValves(lines) |> valves -> totalReleased(valves, "AA")
-
+part2(lines) = parseValves(lines) |> valves -> totalReleased(valves, "AA", maxTime=26, totalPeople=2)
 
 @test part1(example1) == 1651
+@test part2(example1) == 1707
 
 println("Calculating...")
 @time println(part1(lines))
+@time println(part2(lines))

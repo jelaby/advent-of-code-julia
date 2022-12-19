@@ -161,7 +161,8 @@ function doTotalReleased(valves, movements::Vector{Movement}, valvesToVisit, rel
                 nextActionTime = max(0,minimum(m->m.time, newMovements))
                 totalPeople = length(movements)
                 optimisticFlow = releaseRate * (maxTime-totalTime) +
-                    reduce((+), [sum(v->valves[v].flowRate, valvesToVisit[i:min(length(valvesToVisit), i+totalPeople-1)]) * (maxTime-totalTime-nextActionTime-2i) for i in 1:(min((maxTime-totalTime-nextActionTime-2) ÷ (2*totalPeople), length(valvesToVisit)))]; init=0)
+                    reduce((+), [sum(v->valves[v].flowRate, valvesToVisit[i:min(length(valvesToVisit), i+totalPeople-1)]) * (1+maxTime-totalTime-nextActionTime-i) for i in 1:totalPeople:(min(maxTime-totalTime-nextActionTime, length(valvesToVisit)))]; init=0) +
+                    sum(m->valves[m.target].flowRate * (maxTime - totalTime - m.time), newMovements)
                 if optimisticFlow < best
                     return best
                 end
@@ -183,5 +184,9 @@ part2(lines) = parseValves(lines) |> valves -> totalReleased(valves, "AA", maxTi
 @test part2(example1) == 1707
 
 println("Calculating...")
+part1Result = part1(lines)
 @time println(part1(lines))
-@time println(part2(lines))
+part2Result = part2(lines)
+@time println(part2Result)
+@test part1Result == 2080
+@test part2Result != 2685

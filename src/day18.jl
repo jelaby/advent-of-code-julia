@@ -41,7 +41,7 @@ end
 
 example1Coords = parseCoords(example1)
 
-function countCommonFaces(droplet)
+function countCommonFaces(droplet; targetValue=true)
     axiscount = ndims(droplet)
     offsets = fill(0,axiscount,axiscount)
     offsets[LinearAlgebra.diagind(offsets)] .= 1
@@ -50,7 +50,7 @@ function countCommonFaces(droplet)
     for I in CartesianIndices(droplet)
         for offset in eachrow(offsets)
             neighbour = I + CartesianIndex(offset...)
-            if checkbounds(Bool, droplet, neighbour) && droplet[I] && droplet[neighbour]
+            if checkbounds(Bool, droplet, neighbour) && droplet[I]==targetValue && droplet[neighbour]==targetValue
                 neighbours+=2
             end
         end
@@ -67,6 +67,41 @@ end
 @test countCommonFaces([false, true, true, true, false]) == 4
 @test countCommonFaces([false, true, true, true, true]) == 6
 
+function flood!(droplet)
+    axiscount = ndims(droplet)
+    offsets = fill(0,axiscount,axiscount)
+    offsets[LinearAlgebra.diagind(offsets)] .= 1
+
+    activeSquares=Set{CartesianIndex{axiscount}}()
+
+    for I in CartesianIndices(droplet)
+        for axis in 1:axiscount
+            J = [Tuple(I)...]
+            J[axis] = 1
+            if !droplet[CartesianIndex(J...)]
+                push!(activeSquares, CartesianIndex(J...))
+            end
+            J[axis] == size(droplet, axis)
+            if !droplet[CartesianIndex(J...)]
+                push!(activeSquares, CartesianIndex(J...))
+            end
+        end
+    end
+
+    while !isempty(activeSquares)
+        I = first(activeSquares)
+        delete!(activeSquares, I)
+        if checkbounds(Bool, droplet, I) && !droplet[I]
+            droplet[I] = true
+            for offset in eachrow(offsets)
+                offset = CartesianIndex(offset...)
+                push!(activeSquares, I + offset)
+                push!(activeSquares, I - offset)
+            end
+        end
+    end
+    return droplet
+end
 
 function part1(lines)
     coords = parseCoords(lines)
@@ -75,7 +110,21 @@ function part1(lines)
     return faces
 end
 
+function part2(lines)
+    coords = parseCoords(lines)
+    droplet = writeDroplet(coords)
+    faces = 6 * length(coords) - countCommonFaces(droplet)
+
+    flood!(droplet)
+
+    internalFaces = 6 * count(b->!b, droplet) - countCommonFaces(droplet, targetValue=false)
+
+    return faces - internalFaces
+end
+
 @time @test part1(example1) == 64
+@time @test part2(example1) == 58
 
 println("Calculating...")
 @time println(part1(input))
+@time println(part2(input))

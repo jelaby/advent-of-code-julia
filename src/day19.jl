@@ -148,4 +148,6 @@ part1(lines) = parseBlueprints(lines) |> blueprints -> quality(blueprints, geode
 @time @test part1(example1) == 33
 
 println("Calculating...")
-@time println(part1(input))
+@time result = part1(input)
+println(result)
+@test result > 1490

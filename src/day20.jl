@@ -28,7 +28,7 @@ function Element(value)
     return e
 end
 
-parseInput(lines) = parse.(Int, lines) |> asLinkedList
+parseInput(lines, multiplier = 1) = multiplier * parse.(Int, lines) |> asLinkedList
 
 function asLinkedList(numbers)
     start = nothing
@@ -153,10 +153,26 @@ function part1(lines)
     return x + y + z
 end
 
+function part2(lines)
+    (start,zero) = parseInput(lines, 811589153)
+
+    for i = 1:10
+        mix!(start, length(lines))
+    end
+
+    @show x = forwards(zero, 1000).value
+    @show y = forwards(zero, 2000).value
+    @show z = forwards(zero, 3000).value
+
+    return x + y + z
+end
+
 @time @test part1(example1) == 3
+@time @test part2(example1) == 1623178306
 
 println("Calculating...")
 @time result = part1(input)
 println(result)
 @test result > 6266
 @test result == 6387
+@time println(part2(input))

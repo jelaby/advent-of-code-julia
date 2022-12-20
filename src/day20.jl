@@ -81,9 +81,11 @@ end
 
 @test asLinkedList([1,2,0,3])[2].value == 0
 
-function move!(e)
+function move!(e, size)
 
-    if e.value == 0
+    value = e.value % (size - 1)
+
+    if value == 0
         return e
     end
 
@@ -92,12 +94,12 @@ function move!(e)
     e.currentNext.currentPrev = e.currentPrev
 
 
-    if e.value < 0
-        for i in 0:-1:e.value
+    if value < 0
+        for i in 0:-1:value
             target = target.currentPrev
         end
     else
-        for i in 1:e.value
+        for i in 1:value
             target = target.currentNext
         end
     end
@@ -108,13 +110,13 @@ function move!(e)
     target.currentNext = e
 
 end
-function mix!(start)
+function mix!(start, size)
     current = start
 
-    move!(current)
+    move!(current, size)
     while current.next !== start
         current = current.next
-        move!(current)
+        move!(current, size)
     end
     return start
 end
@@ -142,9 +144,7 @@ end
 function part1(lines)
     (start,zero) = parseInput(lines)
 
-    mix!(start)
-
-    display(start)
+    mix!(start, length(lines))
 
     @show x = forwards(zero, 1000).value
     @show y = forwards(zero, 2000).value
@@ -159,3 +159,4 @@ println("Calculating...")
 @time result = part1(input)
 println(result)
 @test result > 6266
+@test result == 6387

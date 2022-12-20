@@ -12,7 +12,7 @@ include("AoC.jl")
 input = open(readlines, "src/day19-input.txt")
 example1 = open(readlines, "src/day19-example-1.txt")
 
-@enum Material ore=1 clay=2 obsidian=3 geode=4
+@enum Material ore=4 clay=3 obsidian=2 geode=1
 @show const MATERIALS = Int(typemax(Material))
 
 struct Robot
@@ -50,30 +50,94 @@ function asArray(robots::Vector{Pair{Material,Int}})
 end
 asArray(robots::Vector{Int}) = robots
 
-maxCreated(blueprint, target, robots, timeLeft) = maxCreated(blueprint, target, asArray(robots), timeLeft)
-@memoize Dict function maxCreated(blueprint, target, robots::Vector{Int}, timeLeft, materials=fill(0,MATERIALS))
 
-    if timeLeft <= 0
-        return materials[Int(target)]
+function heuristic(blueprint, target, robots, timeleft, materials)
+    oreRobotCost = blueprint.robots[Int(ore)].cost[Int(ore)]
+    targetRobotCost = blueprint.robots[Int(target)].cost[Int(ore)]
+
+    oreForOreRobots = materials[Int(ore)]
+    totalOreRobots = robots[Int(ore)]
+    oreForTargetRobots = materials[Int(ore)]
+    totalTargetRobots = robots[Int(target)]
+    totalTarget = materials[Int(target)]
+    for time in 1:timeleft
+        oreForOreRobots += totalOreRobots
+        newOreRobots = oreForOreRobots ÷ oreRobotCost
+        oreForOreRobots -= newOreRobots * oreRobotCost
+        totalOreRobots+=newOreRobots
+
+        totalTarget += totalTargetRobots
+        oreForTargetRobots += totalOreRobots
+        newTargetRobots = oreForTargetRobots ÷ targetRobotCost
+        oreForTargetRobots -= newTargetRobots * targetRobotCost
+        totalTargetRobots+=newTargetRobots
     end
 
-    nextMaterials = materials .+ robots
+    return totalTargetRobots
+end
 
-    result = maxCreated(blueprint, target, robots, timeLeft - 1, materials .+ robots)
+function maxRequired(blueprint, target)
+    result = fill(0, MATERIALS)
 
     for robot in blueprint.robots
-        if all(m->materials[m] >= robot.cost[m], eachindex(robot.cost))
-            nextMaterials = materials .+ robots .- robot.cost
-            nextRobots = copy(robots)
-            nextRobots[Int(robot.type)] += 1
-            result = max(result, maxCreated(blueprint, target, nextRobots, timeLeft - 1, nextMaterials))
-        end
+        result = max.(result, robot.cost)
     end
 
     return result
 end
 
+global theMostGeodes = 0
+global sample = 0
 
+maxCreated(blueprint, target, robots, timeLeft) = maxCreated(blueprint, target, asArray(robots), timeLeft, fill(0,MATERIALS), maxRequired(blueprint,target), 0)
+
+global maxCreatedCache = Dict()
+function maxCreated(blueprint, target, robots::Vector{Int}, timeLeft, materials, maxRobots, best)
+    #return get!(maxCreatedCache, (objectid(blueprint),target,robots,timeLeft,materials)) do
+
+    if timeLeft <= 0
+        #global theMostGeodes
+        #global sample
+        #if materials[Int(target)] > theMostGeodes
+        #    theMostGeodes = materials[Int(target)]
+        #    @show materials[Int(target)],robots,materials,typeof(materials)
+        #elseif sample > 100000
+        #    sample = 0
+        #    @show materials[Int(target)],robots,materials,typeof(materials)
+        #else
+        #    sample += 1
+        #end
+        return materials[Int(target)]
+    end
+
+    result = 0
+
+    robotCouldBeBuilt = false
+
+    for robot in blueprint.robots
+        if (robots[Int(robot.type)] < maxRobots[Int(robot.type)] || robot.type==target) && all(m->materials[m] >= robot.cost[m], eachindex(robot.cost))
+            robotCouldBeBuilt = true
+
+            nextMaterials = materials .+ robots .- robot.cost
+            nextRobots = copy(robots)
+            nextRobots[Int(robot.type)] += 1
+
+            result = max(result, maxCreated(blueprint, target, nextRobots, timeLeft - 1, nextMaterials, maxRobots, result))
+        end
+    end
+
+    if !robotCouldBeBuilt || all(m->materials[m] <= maxRobots[m], eachindex(materials))
+        result = max(result, maxCreated(blueprint, target, robots, timeLeft - 1, materials .+ robots, maxRobots, result))
+    end
+
+    return result
+    #end
+end
+
+quality(blueprint::Blueprint, target, robots, timeLeft) = blueprint.number * maxCreated(blueprint, target, robots, timeLeft)
+quality(blueprints::Vector, target, robots, timeLeft) = sum([quality(blueprint, target, robots, timeLeft) for blueprint in blueprints])
+
+part1(lines) = parseBlueprints(lines) |> blueprints -> quality(blueprints, geode, [ore=>1], 24)
 
 @test maxCreated(exampleBlueprints[1], geode, [ore=>1], 24) == 9
 @test maxCreated(exampleBlueprints[2], geode, [ore=>1], 24) == 12

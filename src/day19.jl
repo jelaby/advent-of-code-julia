@@ -26,12 +26,14 @@ function Robot(type, costs::Pair...)
     end
     return Robot(type, costArray)
 end
+Base.:(==)(a::Robot,b::Robot) = a.type == b.type && a.cost == b.cost
 
 struct Blueprint
     number::Int
     robots::Vector{Robot}
 end
 Blueprint(number, robots...) = Blueprint(number, [robots...])
+Base.:(==)(a::Blueprint,b::Blueprint) = a.number == b.number && a.robots == b.robots
 
 parseBlueprint(line) = match(r"Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.", line).captures |>
     captures -> parse.(Int, captures) |>
@@ -49,6 +51,10 @@ function asArray(robots::Vector{Pair{Material,Int}})
     return result
 end
 asArray(robots::Vector{Int}) = robots
+@test asArray([ore=>2,obsidian=>3])[Int(ore)] == 2
+@test asArray([ore=>2,obsidian=>3])[Int(clay)] == 0
+@test asArray([ore=>2,obsidian=>3])[Int(obsidian)] == 3
+@test asArray([ore=>2,obsidian=>3])[Int(geode)] == 0
 
 
 function heuristic(blueprint, target, robots, timeleft, materials)
@@ -89,11 +95,11 @@ end
 global theMostGeodes = 0
 global sample = 0
 
-maxCreated(blueprint, target, robots, timeLeft) = maxCreated(blueprint, target, asArray(robots), timeLeft, fill(0,MATERIALS), maxRequired(blueprint,target), 0)
+@memoize Dict maxCreated(blueprint, target, robots, timeLeft) = maxCreated(blueprint, target, asArray(robots), timeLeft, fill(0,MATERIALS), maxRequired(blueprint,target), 0)
 
-global maxCreatedCache = Dict()
+global maxCreatedCache = Dict{Tuple{UInt,Material,Vector{Int},Int,Vector{Int}}, Int}()
 function maxCreated(blueprint, target, robots::Vector{Int}, timeLeft, materials, maxRobots, best)
-    #return get!(maxCreatedCache, (objectid(blueprint),target,robots,timeLeft,materials)) do
+    return get!(maxCreatedCache, (objectid(blueprint),target,robots,timeLeft,materials)) do
 
     if timeLeft <= 0
         #global theMostGeodes
@@ -113,25 +119,34 @@ function maxCreated(blueprint, target, robots::Vector{Int}, timeLeft, materials,
     result = 0
 
     robotCouldBeBuilt = false
+    couldBuildByWaiting = false
 
     for robot in blueprint.robots
-        if (robots[Int(robot.type)] < maxRobots[Int(robot.type)] || robot.type==target) && all(m->materials[m] >= robot.cost[m], eachindex(robot.cost))
-            robotCouldBeBuilt = true
+        if (robots[Int(robot.type)] < maxRobots[Int(robot.type)] || robot.type==target)
+            if all(m->materials[m] >= robot.cost[m], eachindex(robot.cost))
+                robotCouldBeBuilt = true
 
-            nextMaterials = materials .+ robots .- robot.cost
-            nextRobots = copy(robots)
-            nextRobots[Int(robot.type)] += 1
+                nextMaterials = materials .+ robots .- robot.cost
+                nextRobots = copy(robots)
+                nextRobots[Int(robot.type)] += 1
 
-            result = max(result, maxCreated(blueprint, target, nextRobots, timeLeft - 1, nextMaterials, maxRobots, result))
+                result = max(result, maxCreated(blueprint, target, nextRobots, timeLeft - 1, nextMaterials, maxRobots, result))
+            elseif all(m->materials[m] + (robots[m] * (timeLeft-1)) >= robot.cost[m], eachindex(robot.cost)) #= already true: &&
+                   any(m->materials[m] < robot.cost[m], eachindex(robot.cost)) =#
+                couldBuildByWaiting = true
+            end
         end
     end
 
-    if !robotCouldBeBuilt || all(m->materials[m] <= maxRobots[m], eachindex(materials))
+    if couldBuildByWaiting
+        #println((" "^(30-timeLeft)) * "wait $(robots) $(materials) $(blueprint)")
         result = max(result, maxCreated(blueprint, target, robots, timeLeft - 1, materials .+ robots, maxRobots, result))
+    #elseif !robotCouldBeBuilt
+    #    println((" "^(30-timeLeft)) * "nowaitnorobot $(timeLeft) $(robots) $(materials) $(blueprint)")
     end
 
     return result
-    #end
+    end
 end
 
 quality(blueprint::Blueprint, target, robots, timeLeft) = blueprint.number * maxCreated(blueprint, target, robots, timeLeft)
@@ -139,13 +154,17 @@ quality(blueprints::Vector, target, robots, timeLeft) = sum([quality(blueprint, 
 
 part1(lines) = parseBlueprints(lines) |> blueprints -> quality(blueprints, geode, [ore=>1], 24)
 
-@test maxCreated(exampleBlueprints[1], geode, [ore=>1], 24) == 9
-@test maxCreated(exampleBlueprints[2], geode, [ore=>1], 24) == 12
-@test quality(exampleBlueprints[1], geode, [ore=>1], 24) == 9
-@test quality(exampleBlueprints[2], geode, [ore=>1], 24) == 24
-@test quality(exampleBlueprints, geode, [ore=>1], 24) == 33
+@time @test maxCreated(exampleBlueprints[1], geode, [ore=>1], 18) == 0
+@time @test maxCreated(exampleBlueprints[1], geode, [ore=>1], 19) == 1
+@time @test maxCreated(exampleBlueprints[1], geode, [ore=>1], 24) == 9
+@time @test maxCreated(exampleBlueprints[2], geode, [ore=>1], 24) == 12
+@time @test quality(exampleBlueprints[1], geode, [ore=>1], 24) == 9
+@time @test quality(exampleBlueprints[2], geode, [ore=>1], 24) == 24
+@time @test quality(exampleBlueprints, geode, [ore=>1], 24) == 33
 
 @time @test part1(example1) == 33
+
+empty!(maxCreatedCache)
 
 println("Calculating...")
 @time result = part1(input)

@@ -83,7 +83,7 @@ end
 
 function move!(e, size)
 
-    value = e.value % (size - 1)
+    value = mod(e.value, size - 1)
 
     if value == 0
         return e
@@ -94,8 +94,8 @@ function move!(e, size)
     e.currentNext.currentPrev = e.currentPrev
 
 
-    if value < 0
-        for i in 0:-1:value
+    if value > size ÷ 2
+        for i in 0:-1:(value + 1 - size)
             target = target.currentPrev
         end
     else

@@ -90,8 +90,12 @@ followMovement(map, movement::Rotation, position, direction) = (position, moveme
 @test followMovement(Char[], ROTATE_RIGHT, CartesianIndex(5,7), [1,0]) == (CartesianIndex(5,7), [0,1])
 
 function loopAround(map, position, direction)
+    originalPosition=position
     while checkbounds(Bool, map, position - direction) && map[position - direction] != SPACE
         position = position - direction
+    end
+    if map[position] == WALL
+        return originalPosition
     end
     return position
 end

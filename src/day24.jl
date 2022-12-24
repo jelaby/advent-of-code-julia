@@ -98,65 +98,62 @@ cacheForWinds(winds) = Array{Union{Missing, NamedTuple{(:time,:path),Tuple{Union
 cacheHits = 0
 cacheAttempts = 0
 
-function timeToTarget(winds, round, targetPosition, position, best=*(size(winds)...), cache=cacheForWinds(winds))
+@memoize moves(position,targetPosition) = [
+    CartesianIndex(sign(targetPosition[1] - position[1]), 0),
+    CartesianIndex(0, sign(targetPosition[2] - position[2])),
+    CartesianIndex(sign(position[1] - targetPosition[1]), 0),
+    CartesianIndex(0, sign(targetPosition[2] - position[2])),
+    CartesianIndex(0, 0)
+]
+
+function timeToTarget(winds, round, startPosition, targetPosition, position=startPosition, best=*(size(winds)...), cache=cacheForWinds(winds))
+    @show :timeToTarget,round,startPosition,targetPosition,position,best
     if position == targetPosition
         return (;time=0,path=[position])
-    end
-
-    if position == CartesianIndex(1,0)
-        (;time,path) = timeToTarget(winds, round + 1, targetPosition, position + DOWN, best - 1, cache)
-        if time === nothing
-            return (;time=nothing,path=nothing)
-        else
-            return (;time=time+1, path=[position,path...])
-        end
-    end
-
-    if (!checkbounds(Bool, winds, CartesianIndex(Tuple(position)...,1)))
-        return (;time=nothing,path=nothing)
     end
 
     #global cacheAttempts
     #global cacheHits
     #cacheAttempts += 1
-    cachePosition = CartesianIndex(Tuple(position)...,mod1(round, size(cache, ndims(cache))))
-    cached = cache[cachePosition]
-    if !ismissing(cached)
-        #cacheHits += 1
-        #if cacheAttempts % 100_000 == 0
-        #    println("Cache hits: $(cacheHits)/$(cacheAttempts)\t$((cacheHits*100) ÷ cacheAttempts)")
-        #end
-        return cached
-    else
-        result = doTimeToTarget(winds, round, targetPosition, position, best, cache)
-
-        cache[cachePosition] = result
-
-        return result
+    cachePosition = CartesianIndex(Tuple(position)...,round)
+    if checkbounds(Bool, cache, cachePosition)
+        cached = cache[cachePosition]
+        if !ismissing(cached)
+            #cacheHits += 1
+            #if cacheAttempts % 100_000 == 0
+            #    println("Cache hits: $(cacheHits)/$(cacheAttempts)\t$((cacheHits*100) ÷ cacheAttempts)")
+            #end
+            return cached
+        end
     end
+
+    result = doTimeToTarget(winds, round, startPosition, targetPosition, position, best, cache)
+
+    if checkbounds(Bool, cache, cachePosition)
+        cache[cachePosition] = result
+    end
+
+    return result
 
 end
-function doTimeToTarget(winds, round, targetPosition, position, best=*(size(winds)...), cache=cacheForWinds(winds))
+function doTimeToTarget(winds, round, startPosition, targetPosition, position, best, cache)
+    @show :doTimeToTarget,round,startPosition,targetPosition,position,best
     if position == targetPosition
         return (;time=0,path=[position])
-    end
-
-    if (!checkbounds(Bool, winds, CartesianIndex(Tuple(position)...,1)))
-        return (;time=nothing,path=nothing)
     end
 
     if best !== nothing && manhattanDistance(position, targetPosition) > best
         return (;time=nothing,path=nothing)
     end
 
-    if occupied(winds, round, position)
+    if position != startPosition && occupied(winds, round, position)
         return (;time=nothing,path=nothing)
     end
 
     result = nothing
     resultPath = nothing
-    for move in MOVES
-        (;time,path) = timeToTarget(winds, round+1, targetPosition, position+move, best - 1, cache)
+    for move in moves(startPosition, targetPosition)
+        (;time,path) = timeToTarget(winds, round+1, startPosition, targetPosition, position+move, best - 1, cache)
         if time !== nothing && (result === nothing || time < best)
             result = time + 1
             best = result
@@ -218,16 +215,37 @@ function part1(lines)
     (;winds,dims) = parseMap(lines)
     winds = precalculateWinds(winds,dims)
 
-    (;time, path) = timeToTarget(winds, 0, dims + CartesianIndex(0,1), CartesianIndex(1,0))
+    (;time, path) = timeToTarget(winds, 0, CartesianIndex(1,0), dims + CartesianIndex(0,1))
     @show time, path
     visualise(path)
     return time
 end
 
+function part2(lines)
+    (;winds,dims) = parseMap(lines)
+    winds = precalculateWinds(winds,dims)
+
+    println("Forwards")
+    @show (;time, path) = timeToTarget(winds, 0, CartesianIndex(1,0), dims + CartesianIndex(0,1))
+    time1 = time
+    println("Backwards")
+    @show (;time, path) = timeToTarget(winds, time1, dims + CartesianIndex(0,1), CartesianIndex(1,0))
+    time2 = time
+    println("Forwards again")
+    @show (;time, path) = timeToTarget(winds, time2, CartesianIndex(1,0), dims + CartesianIndex(0,1))
+    time3 = time
+    @show time, path
+    visualise(path)
+    return time1+time2+time3
+end
+
 #@time @test part1(example1) == 9
 @time @test part1(example2) == 18
+@time @test part2(example2) == 54
 
 println("Calculating...")
 @time result = part1(input)
 println(result)
 @test result < 397
+@time result = part2(input)
+println(result)

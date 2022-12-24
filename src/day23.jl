@@ -92,10 +92,16 @@ function round(elves, round)
     return Dict([elf.next.position => elf.next for elf in values(proposedMovements)])
 end
 
-function rounds(elves, count)
+function rounds(elves, count=typemax(Int))
     elves = Dict([elf.position=>elf for elf in elves])
     for i = 1:count
-        elves = round(elves, i)
+        nextElves = round(elves, i)
+        if nextElves == elves
+            println("Final round $(i)")
+            return collect(values(nextElves))
+        else
+            elves = nextElves
+        end
     end
     return collect(values(elves))
 end
@@ -128,29 +134,29 @@ function elvesToPlan(elves)
     return join([String(row) for row in eachcol(result)],'\n') * "\n"
 end
 
-parseElves(example1) |> elves -> rounds(elves,0) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,1) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,2) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,3) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,4) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,5) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,6) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,7) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,8) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,9) |> elvesToPlan |> println
-parseElves(example1) |> elves -> rounds(elves,10) |> elvesToPlan |> println
-
-parseElves(example2) |> elves -> rounds(elves,0) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,1) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,2) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,3) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,4) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,5) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,6) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,7) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,8) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,9) |> elvesToPlan |> println
-parseElves(example2) |> elves -> rounds(elves,10) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,0) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,1) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,2) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,3) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,4) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,5) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,6) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,7) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,8) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,9) |> elvesToPlan |> println
+#parseElves(example1) |> elves -> rounds(elves,10) |> elvesToPlan |> println
+#
+#parseElves(example2) |> elves -> rounds(elves,0) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,1) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,2) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,3) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,4) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,5) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,6) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,7) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,8) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,9) |> elvesToPlan |> println
+#parseElves(example2) |> elves -> rounds(elves,10) |> elvesToPlan |> println
 
 @test parseElves(example1) |> elves -> rounds(elves,0) |> elves -> freeSpace(elves) == 7*7 - 22
 @test parseElves(example1) |> elves -> rounds(elves,1) |> elves -> freeSpace(elves) == 9*9 - 22
@@ -164,9 +170,13 @@ parseElves(example2) |> elves -> rounds(elves,10) |> elvesToPlan |> println
 @test freeSpace([Elf(1,1,99,98),Elf(3,3,99,98)]) == 7
 
 part1(lines) = parseElves(lines) |> elves->rounds(elves,10) |> elves -> freeSpace(elves)
+part2(lines) = parseElves(lines) |> elves->rounds(elves) |> elves -> freeSpace(elves)
 
 @time @test part1(example1) == 110
+@time @test part2(example2) == 5 * 6 - 5
 
 println("Calculating...")
 @time result = part1(input)
+println(result)
+@time result = part2(input)
 println(result)

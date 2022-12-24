@@ -30,7 +30,7 @@ const FRONT_RIGHT=[1;1;;-1;1]
 const FACING_ATTEMPTS = [[1;0;;0;1],[-1;0;;0;-1],[0;-1;;1;0],[0;1;;-1;0]]
 
 const VIEW=[FRONT_LEFT,FRONT,FRONT_RIGHT]
-@show const NEIGHBOURS=filter!(c -> c != CartesianIndex(0,0), [CartesianIndex(x,y) for x in -1:1 for y in -1:1])
+const NEIGHBOURS=filter!(c -> c != CartesianIndex(0,0), [CartesianIndex(x,y) for x in -1:1 for y in -1:1])
 
 @test FRONT*UP == UP
 @test FRONT_LEFT*UP == UP+LEFT
@@ -97,17 +97,17 @@ function rounds(elves, count=typemax(Int))
     for i = 1:count
         nextElves = round(elves, i)
         if nextElves == elves
-            println("Final round $(i)")
-            return collect(values(nextElves))
+            return (collect(values(nextElves)),i)
         else
             elves = nextElves
         end
     end
-    return collect(values(elves))
+    return (collect(values(elves)),count)
 end
-@test rounds([Elf(1,1,0,1)], 1) == [Elf(1,1,0,1)]
-@test rounds([Elf(1,1,0,-1), Elf(1,0,0,-1)], 1) == [Elf(1,2,0,1),Elf(1,-1,0,-1)]
-@test rounds([Elf(1,1,0,-1), Elf(1,0,0,-1)], 2) == [Elf(1,2,0,1),Elf(1,-1,0,-1)]
+@test rounds([Elf(1,1,0,1)], 1) == ([Elf(1,1,0,1)], 1)
+@test rounds([Elf(1,1,0,1)]) == ([Elf(1,1,0,1)], 1)
+@test rounds([Elf(1,1,0,-1), Elf(1,0,0,-1)], 1) == ([Elf(1,2,0,1),Elf(1,-1,0,-1)],1)
+@test rounds([Elf(1,1,0,-1), Elf(1,0,0,-1)], 2) == ([Elf(1,2,0,1),Elf(1,-1,0,-1)],2)
 
 topLeft(elves) = (minimum(elf->elf.position[1],elves), minimum(elf->elf.position[2], elves))
 bottomRight(elves) = (maximum(elf->elf.position[1],elves), maximum(elf->elf.position[2], elves))
@@ -158,22 +158,22 @@ end
 #parseElves(example2) |> elves -> rounds(elves,9) |> elvesToPlan |> println
 #parseElves(example2) |> elves -> rounds(elves,10) |> elvesToPlan |> println
 
-@test parseElves(example1) |> elves -> rounds(elves,0) |> elves -> freeSpace(elves) == 7*7 - 22
-@test parseElves(example1) |> elves -> rounds(elves,1) |> elves -> freeSpace(elves) == 9*9 - 22
-@test parseElves(example1) |> elves -> rounds(elves,2) |> elves -> freeSpace(elves) == 11*9 - 22
-@test parseElves(example1) |> elves -> rounds(elves,3) |> elves -> freeSpace(elves) == 11*10 - 22
-@test parseElves(example1) |> elves -> rounds(elves,4) |> elves -> freeSpace(elves) == 11*10 - 22
-@test parseElves(example1) |> elves -> rounds(elves,5) |> elves -> freeSpace(elves) == 11*11 - 22
-@test parseElves(example1) |> elves -> rounds(elves,10) |> elves -> freeSpace(elves) == 12*11 - 22
+@test parseElves(example1) |> elves -> rounds(elves,0) |> r -> freeSpace(r[1]) == 7*7 - 22
+@test parseElves(example1) |> elves -> rounds(elves,1) |> r -> freeSpace(r[1]) == 9*9 - 22
+@test parseElves(example1) |> elves -> rounds(elves,2) |> r -> freeSpace(r[1]) == 11*9 - 22
+@test parseElves(example1) |> elves -> rounds(elves,3) |> r -> freeSpace(r[1]) == 11*10 - 22
+@test parseElves(example1) |> elves -> rounds(elves,4) |> r -> freeSpace(r[1]) == 11*10 - 22
+@test parseElves(example1) |> elves -> rounds(elves,5) |> r -> freeSpace(r[1]) == 11*11 - 22
+@test parseElves(example1) |> elves -> rounds(elves,10) |> r -> freeSpace(r[1]) == 12*11 - 22
 
 @test freeSpace([Elf(1,1,99,98),Elf(2,2,99,98)]) == 2
 @test freeSpace([Elf(1,1,99,98),Elf(3,3,99,98)]) == 7
 
-part1(lines) = parseElves(lines) |> elves->rounds(elves,10) |> elves -> freeSpace(elves)
-part2(lines) = parseElves(lines) |> elves->rounds(elves) |> elves -> freeSpace(elves)
+part1(lines) = parseElves(lines) |> elves->rounds(elves,10) |> r -> freeSpace(r[1])
+part2(lines) = parseElves(lines) |> elves->rounds(elves) |> r -> r[2]
 
 @time @test part1(example1) == 110
-@time @test part2(example2) == 5 * 6 - 5
+@time @test part2(example1) == 20
 
 println("Calculating...")
 @time result = part1(input)

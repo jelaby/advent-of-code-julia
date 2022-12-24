@@ -103,6 +103,15 @@ function timeToTarget(winds, round, targetPosition, position, best=*(size(winds)
         return (;time=0,path=[position])
     end
 
+    if position == CartesianIndex(1,0)
+        (;time,path) = timeToTarget(winds, round + 1, targetPosition, position + DOWN, best - 1, cache)
+        if time === nothing
+            return (;time=nothing,path=nothing)
+        else
+            return (;time=time+1, path=[position,path...])
+        end
+    end
+
     if (!checkbounds(Bool, winds, CartesianIndex(Tuple(position)...,1)))
         return (;time=nothing,path=nothing)
     end
@@ -162,9 +171,9 @@ function part1(lines)
     (;winds,dims) = parseMap(lines)
     winds = precalculateWinds(winds,dims)
 
-    (;time, path) = timeToTarget(winds, 1, dims + CartesianIndex(0,1), CartesianIndex(1,1))
+    (;time, path) = timeToTarget(winds, 0, dims + CartesianIndex(0,1), CartesianIndex(1,0))
     @show time, path
-    return time + 1
+    return time
 end
 
 #@time @test part1(example1) == 9
@@ -173,3 +182,4 @@ end
 println("Calculating...")
 @time result = part1(input)
 println(result)
+@test result < 397

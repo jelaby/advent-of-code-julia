@@ -7,6 +7,7 @@ day24:
 using Test
 using Base.Iterators
 using Memoize
+import Random
 include("AoC.jl")
 
 input = open(readlines, "src/day24-input.txt")
@@ -92,9 +93,47 @@ function occupied(winds, round, position)
     return !checkbounds(Bool, winds, x) || winds[Tuple(position)...,mod1(round, size(winds, ndims(winds)))]
 end
 
-function timeToTarget(winds, round, targetPosition, position, best=*(size(winds)...))
+cacheForWinds(winds) = Array{Union{Missing, NamedTuple{(:time,:path),Tuple{Union{Nothing,Int},Union{Nothing,Vector{CartesianIndex}}}}}}(missing, size(winds))
+
+cacheHits = 0
+cacheAttempts = 0
+
+function timeToTarget(winds, round, targetPosition, position, best=*(size(winds)...), cache=cacheForWinds(winds))
     if position == targetPosition
         return (;time=0,path=[position])
+    end
+
+    if (!checkbounds(Bool, winds, CartesianIndex(Tuple(position)...,1)))
+        return (;time=nothing,path=nothing)
+    end
+
+    #global cacheAttempts
+    #global cacheHits
+    #cacheAttempts += 1
+    cachePosition = CartesianIndex(Tuple(position)...,mod1(round, size(cache, ndims(cache))))
+    cached = cache[cachePosition]
+    if !ismissing(cached)
+        #cacheHits += 1
+        #if cacheAttempts % 100_000 == 0
+        #    println("Cache hits: $(cacheHits)/$(cacheAttempts)\t$((cacheHits*100) ÷ cacheAttempts)")
+        #end
+        return cached
+    else
+        result = doTimeToTarget(winds, round, targetPosition, position, best, cache)
+
+        cache[cachePosition] = result
+
+        return result
+    end
+
+end
+function doTimeToTarget(winds, round, targetPosition, position, best=*(size(winds)...), cache=cacheForWinds(winds))
+    if position == targetPosition
+        return (;time=0,path=[position])
+    end
+
+    if (!checkbounds(Bool, winds, CartesianIndex(Tuple(position)...,1)))
+        return (;time=nothing,path=nothing)
     end
 
     if best !== nothing && manhattanDistance(position, targetPosition) > best
@@ -108,7 +147,7 @@ function timeToTarget(winds, round, targetPosition, position, best=*(size(winds)
     result = nothing
     resultPath = nothing
     for move in MOVES
-        (;time,path) = timeToTarget(winds, round+1, targetPosition, position+move, best - 1)
+        (;time,path) = timeToTarget(winds, round+1, targetPosition, position+move, best - 1, cache)
         if time !== nothing && (result === nothing || time < best)
             result = time + 1
             best = result

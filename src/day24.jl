@@ -93,7 +93,7 @@ function occupied(winds, round, position)
     return !checkbounds(Bool, winds, x) || winds[Tuple(position)...,mod1(round, size(winds, ndims(winds)))]
 end
 
-cacheForWinds(winds) = Array{Union{Missing, NamedTuple{(:time,:path),Tuple{Union{Nothing,Int},Union{Nothing,Vector{CartesianIndex}}}}}}(missing, size(winds))
+cacheForWinds(winds) = Array{Union{Missing, NamedTuple{(:time,:path),Tuple{Union{Nothing,Int},Union{Nothing,Vector{CartesianIndex}}}}}}(missing, size(winds,1), size(winds,2), size(winds,3)*2)
 
 cacheHits = 0
 cacheAttempts = 0
@@ -167,12 +167,60 @@ function doTimeToTarget(winds, round, targetPosition, position, best=*(size(wind
     return (;time=result,path=resultPath)
 end
 
+function visualise(path)
+    dims = (maximum(c->c[1], path), maximum(c->c[2], path) + 1)
+
+    result = Array{Vector{Char}}(undef, dims)
+    for I in eachindex(result)
+        result[I] = []
+    end
+
+    prev = path[1]
+    for cur = @view path[2:end]
+        dir = cur - prev
+        if dir == RIGHT
+            c = '>'
+        elseif dir == LEFT
+            c = '<'
+        elseif dir == DOWN
+            c = 'v'
+        elseif dir == UP
+            c = '^'
+        else
+            c = '*'
+        end
+        push!(result[prev + CartesianIndex(0,1)], c)
+        prev = cur
+    end
+
+
+    for y in 1:size(result, 2)
+        width = maximum(p -> length(p), result[:,y])
+        for i in 1:width
+            for x in 1:size(result, 1)
+                if !checkbounds(Bool, result[x,y],i)
+                    if i == 1
+                        print("•")
+                    else
+                        print(" ")
+                    end
+                else
+                    print(result[x,y][i])
+                end
+            end
+            println()
+        end
+    end
+end
+
+
 function part1(lines)
     (;winds,dims) = parseMap(lines)
     winds = precalculateWinds(winds,dims)
 
     (;time, path) = timeToTarget(winds, 0, dims + CartesianIndex(0,1), CartesianIndex(1,0))
     @show time, path
+    visualise(path)
     return time
 end
 

@@ -42,12 +42,11 @@ const NEIGHBOURS=filter!(c -> c != CartesianIndex(0,0), [CartesianIndex(x,y) for
 struct Elf
     position::CartesianIndex
 end
-Elf(position, direction) = Elf(position)
-Elf(px,py,dx,dy) = Elf(CartesianIndex(px,py))
+Elf(px,py) = Elf(CartesianIndex(px,py))
 Base.:(==)(a::Elf,b::Elf) = a.position == b.position
 
 parseMapAsArray(lines) = [c == '#' for line in lines for c in line] |> cc -> reshape(cc, :, length(lines))
-arrayToElves(map) = [Elf(I, UP) for I in filter(i->map[i], CartesianIndices(map))]
+arrayToElves(map) = [Elf(I) for I in filter(i->map[i], CartesianIndices(map))]
 parseElves = arrayToElves ∘ parseMapAsArray
 
 
@@ -67,7 +66,7 @@ function moveElf(elves::Dict, elf::Elf, round)
     for attempt in 0:3
         direction = MOVES[mod1(round+attempt,length(MOVES))]
         if !any(v->haskey(elves, elf.position + v), ahead(direction))
-            return Elf(elf.position + direction, direction)
+            return Elf(elf.position + direction)
         end
     end
     return elf
@@ -104,10 +103,10 @@ function rounds(elves, count=typemax(Int))
     end
     return (collect(values(elves)),count)
 end
-@test rounds([Elf(1,1,0,1)], 1) == ([Elf(1,1,0,1)], 1)
-@test rounds([Elf(1,1,0,1)]) == ([Elf(1,1,0,1)], 1)
-@test rounds([Elf(1,1,0,-1), Elf(1,0,0,-1)], 1) == ([Elf(1,2,0,1),Elf(1,-1,0,-1)],1)
-@test rounds([Elf(1,1,0,-1), Elf(1,0,0,-1)], 2) == ([Elf(1,2,0,1),Elf(1,-1,0,-1)],2)
+@test rounds([Elf(1,1)], 1) == ([Elf(1,1)], 1)
+@test rounds([Elf(1,1)]) == ([Elf(1,1)], 1)
+@test rounds([Elf(1,1), Elf(1,0)], 1) == ([Elf(1,2),Elf(1,-1)],1)
+@test rounds([Elf(1,1), Elf(1,0)], 2) == ([Elf(1,2),Elf(1,-1)],2)
 
 topLeft(elves) = (minimum(elf->elf.position[1],elves), minimum(elf->elf.position[2], elves))
 bottomRight(elves) = (maximum(elf->elf.position[1],elves), maximum(elf->elf.position[2], elves))
@@ -166,8 +165,8 @@ end
 @test parseElves(example1) |> elves -> rounds(elves,5) |> r -> freeSpace(r[1]) == 11*11 - 22
 @test parseElves(example1) |> elves -> rounds(elves,10) |> r -> freeSpace(r[1]) == 12*11 - 22
 
-@test freeSpace([Elf(1,1,99,98),Elf(2,2,99,98)]) == 2
-@test freeSpace([Elf(1,1,99,98),Elf(3,3,99,98)]) == 7
+@test freeSpace([Elf(1,1),Elf(2,2)]) == 2
+@test freeSpace([Elf(1,1),Elf(3,3)]) == 7
 
 part1(lines) = parseElves(lines) |> elves->rounds(elves,10) |> r -> freeSpace(r[1])
 part2(lines) = parseElves(lines) |> elves->rounds(elves) |> r -> r[2]

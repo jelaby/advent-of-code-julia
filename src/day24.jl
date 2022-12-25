@@ -91,7 +91,7 @@ function occupied(winds, round, position)
     return !checkbounds(Bool, winds, x) || winds[Tuple(position)...,mod1(round, size(winds, ndims(winds)))]
 end
 
-cacheForWinds(winds) = Array{Union{Missing, NamedTuple{(:time,:path),Tuple{Union{Nothing,Int},Union{Nothing,Vector{CartesianIndex}}}}}}(missing, size(winds,1)+2, size(winds,2)+4, size(winds,3)*4)
+cacheForWinds(winds) = Array{Union{Missing, NamedTuple{(:time,:path),Tuple{Union{Nothing,Int},Union{Nothing,Vector{CartesianIndex}}}}}}(missing, size(winds,1)+2, size(winds,2)+4, size(winds,3)*2)
 
 cacheHits = 0
 cacheAttempts = 0
@@ -202,8 +202,7 @@ function visualise(path)
     end
 end
 
-
-function part1(lines)
+@memoize function part1(lines)
     (;winds,dims) = parseMap(lines)
     winds = precalculateWinds(winds,dims)
 
@@ -213,7 +212,7 @@ function part1(lines)
     return time
 end
 
-function part2(lines)
+@memoize function part2(lines)
     (;winds,dims) = parseMap(lines)
     winds = precalculateWinds(winds,dims)
 

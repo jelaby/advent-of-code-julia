@@ -57,9 +57,7 @@ end
 
 manhattanDistance(a,b) = manhattanSize(b-a)
 manhattanSize(v::CartesianIndex) = manhattanSize(Tuple(v))
-manhattanSize(numbers) = sum(numbers)
-
-const MOVES = filter(c->c[1] == 0 || c[2] == 0, [CartesianIndex(x,y) for x in 1:-1:-1 for y in 1:-1:-1])
+manhattanSize(numbers) = sum(abs.(numbers))
 
 precalculateWinds((;winds,dims)) = precalculateWinds(winds, dims)
 precalculateWinds(winds,dims) = precalculateWinds(winds, dims, lcm(Tuple(dims)...))
@@ -93,21 +91,20 @@ function occupied(winds, round, position)
     return !checkbounds(Bool, winds, x) || winds[Tuple(position)...,mod1(round, size(winds, ndims(winds)))]
 end
 
-cacheForWinds(winds) = Array{Union{Missing, NamedTuple{(:time,:path),Tuple{Union{Nothing,Int},Union{Nothing,Vector{CartesianIndex}}}}}}(missing, size(winds,1), size(winds,2), size(winds,3)*2)
+cacheForWinds(winds) = Array{Union{Missing, NamedTuple{(:time,:path),Tuple{Union{Nothing,Int},Union{Nothing,Vector{CartesianIndex}}}}}}(missing, size(winds,1)+2, size(winds,2)+4, size(winds,3)*4)
 
 cacheHits = 0
 cacheAttempts = 0
 
-@memoize moves(position,targetPosition) = [
+@memoize moves(position,targetPosition) = @show [
     CartesianIndex(sign(targetPosition[1] - position[1]), 0),
     CartesianIndex(0, sign(targetPosition[2] - position[2])),
-    CartesianIndex(sign(position[1] - targetPosition[1]), 0),
-    CartesianIndex(0, sign(targetPosition[2] - position[2])),
-    CartesianIndex(0, 0)
+    CartesianIndex(-sign(targetPosition[1] - position[1]), 0),
+    CartesianIndex(0, -sign(targetPosition[2] - position[2])),
+    CartesianIndex(0, 0),
 ]
 
 function timeToTarget(winds, round, startPosition, targetPosition, position=startPosition, best=*(size(winds)...), cache=cacheForWinds(winds))
-    @show :timeToTarget,round,startPosition,targetPosition,position,best
     if position == targetPosition
         return (;time=0,path=[position])
     end
@@ -115,8 +112,7 @@ function timeToTarget(winds, round, startPosition, targetPosition, position=star
     #global cacheAttempts
     #global cacheHits
     #cacheAttempts += 1
-    cachePosition = CartesianIndex(Tuple(position)...,round)
-    if checkbounds(Bool, cache, cachePosition)
+    cachePosition = CartesianIndex(position[1]+1, position[2]+2,mod1(round+1, size(cache,3)))
         cached = cache[cachePosition]
         if !ismissing(cached)
             #cacheHits += 1
@@ -125,19 +121,15 @@ function timeToTarget(winds, round, startPosition, targetPosition, position=star
             #end
             return cached
         end
-    end
 
     result = doTimeToTarget(winds, round, startPosition, targetPosition, position, best, cache)
 
-    if checkbounds(Bool, cache, cachePosition)
         cache[cachePosition] = result
-    end
 
     return result
 
 end
 function doTimeToTarget(winds, round, startPosition, targetPosition, position, best, cache)
-    @show :doTimeToTarget,round,startPosition,targetPosition,position,best
     if position == targetPosition
         return (;time=0,path=[position])
     end
@@ -228,24 +220,26 @@ function part2(lines)
     println("Forwards")
     @show (;time, path) = timeToTarget(winds, 0, CartesianIndex(1,0), dims + CartesianIndex(0,1))
     time1 = time
+    visualise(path)
     println("Backwards")
     @show (;time, path) = timeToTarget(winds, time1, dims + CartesianIndex(0,1), CartesianIndex(1,0))
     time2 = time
+    visualise(path)
     println("Forwards again")
-    @show (;time, path) = timeToTarget(winds, time2, CartesianIndex(1,0), dims + CartesianIndex(0,1))
+    @show (;time, path) = timeToTarget(winds, time1+time2, CartesianIndex(1,0), dims + CartesianIndex(0,1))
     time3 = time
-    @show time, path
     visualise(path)
     return time1+time2+time3
 end
 
 #@time @test part1(example1) == 9
 @time @test part1(example2) == 18
+@time @test part1(input) == 373
 @time @test part2(example2) == 54
 
 println("Calculating...")
 @time result = part1(input)
 println(result)
-@test result < 397
+@test result == 373
 @time result = part2(input)
 println(result)

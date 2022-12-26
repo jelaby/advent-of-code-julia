@@ -189,7 +189,7 @@ function visualise(path)
             for x in 1:size(result, 1)
                 if !checkbounds(Bool, result[x,y],i)
                     if i == 1
-                        print("•")
+                        print("‾")
                     else
                         print(" ")
                     end

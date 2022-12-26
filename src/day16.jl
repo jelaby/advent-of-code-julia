@@ -7,25 +7,26 @@ day16:
 using Test
 using Base.Iterators
 using Memoize
+using AutoHashEquals
 include("AoC.jl")
 
 lines = open(readlines, "src/day16-input.txt")
 example1 = open(readlines, "src/day16-example-1.txt")
 
-struct Valve
+@auto_hash_equals struct Valve
     name::AbstractString
     flowRate::Int
     neighbours::Vector{AbstractString}
 end
 
-struct Location
+@auto_hash_equals struct Location
     valve::Valve
     path::Set{Valve}
 end
 Location(valve) = Location(valve, Set())
 Location(valve, path) = Location(valve, Set{Valve}(path))
 
-struct State
+@auto_hash_equals struct State
     locations::Vector{Location}
     valvesOpen::Set{Valve}
     released::Int
@@ -89,6 +90,11 @@ function totalReleased(valves, start, totalTime, n)
     for timeLeft in totalTime:-1:1
         @show timeLeft
         states = collect(flatten([nextStates(valves, state, timeLeft) for state in states]))
+        for state in states
+            sort!(state.locations, by=l->l.valve.name)
+        end
+        states = Set(states)
+        states = collect(states)
         result,i = findmax(s->s.released, states)
         println("$(length(states)) $(result) $(states[i])")
     end

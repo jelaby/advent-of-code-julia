@@ -187,6 +187,11 @@ function totalReleased(valves, start, totalTime, n)
 
         filter!(states) do state; maximumPotential(valves,state,timeLeft) >= bestFlow; end
 
+        if length(states) > 100_000
+            states = collect(states)
+            sort!(states, by=state->state.released, rev=true)
+            states = states[1:100_000]
+        end
 
         println("$(length(states)) $(bestFlow)")
     end

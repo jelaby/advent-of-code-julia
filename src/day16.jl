@@ -45,8 +45,12 @@ moveTime(valves, start::Valve, finish::Valve) = moveTime(valves, start.name, fin
         (_,_) -> 1,
         (current,neighbour,_)->1)
 end
+@memoize function reconstructPath(valves, t)
+    path = AoC.reconstructAstar(t)
+    return collect([valves[v] for v in path])
+end
 
-@memoize worthwhileValves(valves) = filter(collect(values(valves))) do valve; valve.flowRate > 0; end
+@memoize worthwhileValves(valves) = Set(filter(collect(values(valves))) do valve; valve.flowRate > 0; end)
 
 """
 Find all the valves worth moving to in the remaining time
@@ -66,8 +70,7 @@ function doReachableIn(valves, alreadyVisited, start::T, timeLeft) where T
     for valve in setdiff(worthwhileValves(valves), alreadyVisited)
         t = moveTime(valves, start, valve)
         if t !== nothing && t.g <= timeLeft
-            path = AoC.reconstructAstar(t)
-            union!(result, [valves[v] for v in path])
+            union!(result, reconstructPath(valves, t))
         elseif t===nothing
             println("No path at all from $(start) to $(valve)")
         end

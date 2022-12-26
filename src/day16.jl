@@ -142,8 +142,10 @@ function maximumPotential(valves, state, timeLeft)
     totalPotential = 0
     n = length(state.locations)
     for i in 1:n:length(allReachableValves)
-        for j in i:min(i+n-1,length(allReachableValves))
-            totalPotential += (timeLeft) * allReachableValves[j].flowRate
+        if timeLeft > 0
+            for j in i:min(i+n-1,length(allReachableValves))
+                totalPotential += (timeLeft) * allReachableValves[j].flowRate
+            end
         end
         timeLeft -= 2
     end
@@ -163,11 +165,30 @@ function totalReleased(valves, start, totalTime, n)
         end
         states = Set(states)
 
-        best = maximum(states) do state; state.released; end
+        best = AoC.best(states) do state; state.released; end
+        bestFlow = best.released
 
-        filter!(states) do state; maximumPotential(valves,state,timeLeft) >= best; end
+        valvesOpen = copy(best.valvesOpen)
+        for location in best.locations
+            locationFlow=0
+            bestValve=nothing
+            for reachable in setdiff(reachableValvesWithFlow(valves, location.valve, timeLeft), valvesOpen)
+                potentialRelease = (timeLeft - 1 - moveTime(valves, location.valve, reachable).g) * reachable.flowRate
+                if potentialRelease > locationFlow
+                    locationFlow = potentialRelease
+                    bestValve = reachable
+                end
+            end
+            if bestValve !== nothing
+                push!(valvesOpen,bestValve)
+                bestFlow = bestFlow + locationFlow
+            end
+        end
 
-        println("$(length(states)) $(best)")
+        filter!(states) do state; maximumPotential(valves,state,timeLeft) >= bestFlow; end
+
+
+        println("$(length(states)) $(bestFlow)")
     end
 
     states = collect(states)

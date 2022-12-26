@@ -13,7 +13,10 @@ julia>
 """
 module AoC
 
+    using Test
+
     export astar
+    export best
 
     """ Parse each line of the input as an integer """
     ints(lines::Array{<:AbstractString}) = parse.(Int, lines)
@@ -110,4 +113,9 @@ module AoC
 
         return reverse!(result)
     end
+
+    best(f, itr) = mapreduce(i -> (;v = f(i), i = i), (a,b) -> a.v >= b.v ? a : b, itr).i
+    @test best(x->x % 5, [4,5,6,7,8]) == 4
+    @test best(length, ["a","aa","bbbb", "aaaaa"]) == "aaaaa"
+
 end

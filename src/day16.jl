@@ -29,7 +29,6 @@ struct State
     locations::Vector{Location}
     valvesOpen::Set{Valve}
     released::Int
-    #State(locations, valvesOpen, released) = new(sort!(locations, by=l->l.valve.name), valvesOpen, released)
 end
 
 parseValve(line) = match(r"Valve (..) has flow rate=(\d+); tunnels? leads? to valves? (.*)", line).captures |>

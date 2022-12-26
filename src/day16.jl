@@ -52,6 +52,13 @@ end
 
 @memoize valvesWithFlow(valves) = Set(filter(collect(values(valves))) do valve; valve.flowRate > 0; end)
 
+@memoize function reachableValvesWithFlow(valves, valve, timeLeft)
+    return filter(valvesWithFlow(valves)) do candidate
+        moveTime(valves, valve, candidate).g <= timeLeft
+    end
+end
+
+
 """
 Find all the valves worth moving to in the remaining time
 (this is the list
@@ -126,21 +133,44 @@ function nextStates(valves, state, n, timeLeft)
     return result
 end
 
+function maximumPotential(valves, state, timeLeft)
+    allReachableValves = Set(flatten([reachableValvesWithFlow(valves, location.valve, timeLeft) for location in state.locations]))
+    setdiff!(allReachableValves, state.valvesOpen)
+
+    allReachableValves = sort!(collect(allReachableValves), by=v->v.flowRate, rev=true)
+
+    totalPotential = 0
+    n = length(state.locations)
+    for i in 1:n:length(allReachableValves)
+        for j in i:min(i+n-1,length(allReachableValves))
+            totalPotential += (timeLeft) * allReachableValves[j].flowRate
+        end
+        timeLeft -= 2
+    end
+
+    return totalPotential + state.released
+end
+
 function totalReleased(valves, start, totalTime, n)
     states = [State([Location(valves[start]) for _ in 1:n],Set(),0)]
 
     for timeLeft in totalTime:-1:1
         @show timeLeft
-        states = collect(flatten([nextStates(valves, state, timeLeft) for state in states]))
+        states = flatten([nextStates(valves, state, timeLeft) for state in states])
+
         for state in states
             sort!(state.locations, by=l->l.valve.name)
         end
         states = Set(states)
-        states = collect(states)
-        result,i = findmax(s->s.released, states)
-        println("$(length(states)) $(result) $(states[i])")
+
+        best = maximum(states) do state; state.released; end
+
+        filter!(states) do state; maximumPotential(valves,state,timeLeft) >= best; end
+
+        println("$(length(states)) $(best)")
     end
 
+    states = collect(states)
     result,i = findmax(states) do state
         state.released
     end

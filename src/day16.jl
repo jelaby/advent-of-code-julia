@@ -105,8 +105,8 @@ end
 part1(lines) = parseValves(lines) |> valves -> totalReleased(valves, "AA", 30, 1)
 part2(lines) = parseValves(lines) |> valves -> totalReleased(valves, "AA", 26, 2)
 
-@test part1(example1) == 1651
-@test part2(example1) == 1707
+@time @test part1(example1) == 1651
+@time @test part2(example1) == 1707
 
 println("Calculating...")
 part1Result = part1(lines)

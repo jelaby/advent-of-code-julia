@@ -37,6 +37,43 @@ parseValve(line) = match(r"Valve (..) has flow rate=(\d+); tunnels? leads? to va
 parseValves(lines) = parseValve.(lines) |>
     valves -> Dict([valve.name => valve for valve in valves])
 
+moveTime(valves, start::Valve, finish::Valve) = moveTime(valves, start.name, finish.name)
+@memoize function moveTime(valves, start::AbstractString, finish::AbstractString)
+    return AoC.astar(start,
+        (current,_) -> valves[current].neighbours,
+        (current,_) -> current==finish,
+        (_,_) -> 1,
+        (current,neighbour,_)->1)
+end
+
+@memoize worthwhileValves(valves) = filter(collect(values(valves))) do valve; valve.flowRate > 0; end
+
+"""
+Find all the valves worth moving to in the remaining time
+(this is the list
+"""
+reachableInCache=Dict{Tuple{UInt,Set{Valve},Valve,Int},Set{Valve}}()
+function reachableIn(valves, alreadyVisited, start::T, timeLeft) where T
+    return get!(reachableInCache, (objectid(valves), alreadyVisited, start, timeLeft)) do
+        doReachableIn(valves, alreadyVisited, start, timeLeft)
+    end
+end
+
+function doReachableIn(valves, alreadyVisited, start::T, timeLeft) where T
+    @assert valtype(valves) === eltype(alreadyVisited) "$(eltype(valves)) !== $(eltype(alreadyVisited))"
+    @assert valtype(valves) === typeof(start) "$(eltype(valves)) !== $(typeof(start))"
+    result = Set{T}()
+    for valve in setdiff(worthwhileValves(valves), alreadyVisited)
+        t = moveTime(valves, start, valve)
+        if t !== nothing && t.g <= timeLeft
+            path = AoC.reconstructAstar(t)
+            union!(result, [valves[v] for v in path])
+        elseif t===nothing
+            println("No path at all from $(start) to $(valve)")
+        end
+    end
+    return result
+end
 
 function withElement(list, n, value)
     result = copy(list)
@@ -65,7 +102,9 @@ function nextStates(valves, state, n, timeLeft)
             timeLeft))
     end
 
-    for neighbour in [valves[n] for n in location.valve.neighbours]
+    valvesWorthTrying = reachableIn(valves, state.valvesOpen, location.valve, timeLeft - 1)
+
+    for neighbour in [valves[n] for n in location.valve.neighbours] ∩ valvesWorthTrying
         if neighbour ∉ location.path
             append!(result, nextStates(valves,
                 State(

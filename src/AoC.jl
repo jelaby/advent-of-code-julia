@@ -96,5 +96,18 @@ module AoC
             end
         end
         @show :wtf,start,isfinish
+        return nothing
+    end
+
+    function reconstructAstar((;g,current,cameFrom))
+        result = Vector{typeof(current)}()
+
+        push!(result, current)
+        while get(cameFrom, current, nothing) !== nothing
+            current = cameFrom[current]
+            push!(result, current)
+        end
+
+        return reverse!(result)
     end
 end

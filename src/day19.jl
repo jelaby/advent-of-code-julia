@@ -96,6 +96,7 @@ function nextStates(blueprint, target, state, maxRobots)
     for r in blueprint.robots
         if state.robots[r.type] < maxRobots[r.type]
             if all(r.cost .<= state.materials)
+            #if all(r.cost .<= state.materials) && any(r.cost .> 0 .&& state.materials .- state.robots .< r.cost .< state.materials .+ state.robots)
                 push!(result, State(copyAndAdd(state.robots, r.type, 1), nextMaterials .- r.cost))
             elseif all(state.robots .> 0 .|| r.cost .== 0)
                 couldWait = true
@@ -129,12 +130,16 @@ function maxCreated(blueprint, target, robots, timeLeft)
             filter!(states) do state
                 state.materials[target] + triangular(timeLeft-1) >= best
             end
+
+            if length(states) > 1_000_000
+                states = sort!(collect(states), by=state -> state.materials[target], rev=true)[1:1_000_000]
+            end
         end
 
         println("$(t) $(length(states))")
     end
 
-    return maximum(states) do state; state.materials[target]; end
+    return @show maximum(states) do state; state.materials[target]; end
 end
 
 @show maxCreated(exampleBlueprints[1], geode, [ore=>1], 3)
@@ -144,6 +149,10 @@ quality(blueprint::Blueprint, target, robots, timeLeft) = blueprint.number * max
 quality(blueprints::Vector, target, robots, timeLeft) = sum([quality(blueprint, target, robots, timeLeft) for blueprint in blueprints])
 
 part1(lines) = parseBlueprints(lines) |> blueprints -> quality(blueprints, geode, [ore=>1], 24)
+function part2(lines)
+    blueprints = parseBlueprints(lines)[1:3]
+    return *([maxCreated(blueprint, geode, [ore=>1], 32) for blueprint in blueprints]...)
+end
 
 #@time @test maxCreated(exampleBlueprints[1], geode, [ore=>1], 18) == 0
 #@time @test maxCreated(exampleBlueprints[1], geode, [ore=>1], 19) == 1
@@ -151,11 +160,16 @@ part1(lines) = parseBlueprints(lines) |> blueprints -> quality(blueprints, geode
 #@time @test maxCreated(exampleBlueprints[2], geode, [ore=>1], 24) == 12
 #@time @test quality(exampleBlueprints[1], geode, [ore=>1], 24) == 9
 #@time @test quality(exampleBlueprints[2], geode, [ore=>1], 24) == 24
-@time @test quality(exampleBlueprints, geode, [ore=>1], 24) == 33
+#@time @test quality(exampleBlueprints, geode, [ore=>1], 24) == 33
+#
+#@time @test maxCreated(exampleBlueprints[1], geode, [ore=>1], 32) == 56
+#@time @test maxCreated(exampleBlueprints[2], geode, [ore=>1], 32) == 62
 
-@time @test part1(example1) == 33
+#@time @test part1(example1) == 33
 
 println("Calculating...")
-@time result = part1(input)
+#@time result = part1(input)
+#println(result)
+#@test result > 1490
+@time result = part2(input)
 println(result)
-@test result > 1490
